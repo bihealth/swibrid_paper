@@ -1,0 +1,351 @@
+ENV: "swibrid"
+SNAKEOPTS: "-j 100 -k --rerun-incomplete --latency-wait 60 -p --retries 10" 
+STUDY: "cluster_benchmark_sparse"
+INPUT: ""
+SAMPLE_SHEET: ""
+SAMPLES: ["mix_n10_s1_10k","mix_n10_s2_10k","mix_n25_s1_10k","mix_n25_s2_10k","mix_n100_s1_10k","mix_n100_s2_10k","mix_n250_s1_10k","mix_n250_s2_10k","mix_n1000_s1_10k","mix_n1000_s2_10k","mix_n2500_s1_10k","mix_n2500_s2_10k","mix_n10000_s1_10k","mix_n10000_s2_10k","mix_n25000_s1_10k","mix_n25000_s2_10k","mix_n10_s1_20k","mix_n10_s2_20k","mix_n25_s1_20k","mix_n25_s2_20k","mix_n100_s1_20k","mix_n100_s2_20k","mix_n250_s1_20k","mix_n250_s2_20k","mix_n1000_s1_20k","mix_n1000_s2_20k","mix_n2500_s1_20k","mix_n2500_s2_20k","mix_n10000_s1_20k","mix_n10000_s2_20k","mix_n25000_s1_20k","mix_n25000_s2_20k","mix_n10_s1_50k","mix_n10_s2_50k","mix_n25_s1_50k","mix_n25_s2_50k","mix_n100_s1_50k","mix_n100_s2_50k","mix_n250_s1_50k","mix_n250_s2_50k","mix_n1000_s1_50k","mix_n1000_s2_50k","mix_n2500_s1_50k","mix_n2500_s2_50k","mix_n10000_s1_50k","mix_n10000_s2_50k","mix_n25000_s1_50k","mix_n25000_s2_50k","mix_n10_s1_100k","mix_n10_s2_100k","mix_n25_s1_100k","mix_n25_s2_100k","mix_n100_s1_100k","mix_n100_s2_100k","mix_n250_s1_100k","mix_n250_s2_100k","mix_n1000_s1_100k","mix_n1000_s2_100k","mix_n2500_s1_100k","mix_n2500_s2_100k","mix_n10000_s1_100k","mix_n10000_s2_100k","mix_n25000_s1_100k","mix_n25000_s2_100k","mix_n10_s1_200k","mix_n10_s2_200k","mix_n25_s1_200k","mix_n25_s2_200k","mix_n100_s1_200k","mix_n100_s2_200k","mix_n250_s1_200k","mix_n250_s2_200k","mix_n1000_s1_200k","mix_n1000_s2_200k","mix_n2500_s1_200k","mix_n2500_s2_200k","mix_n10000_s1_200k","mix_n10000_s2_200k","mix_n25000_s1_200k","mix_n25000_s2_200k"]
+MINLENGTH: 500
+BARCODES_PRIMERS: ''
+REFERENCE: 'index/hg38_chr14_105-106MB.fa'
+SWITCH: 'chr14_switch:583000-872000:-'
+SWITCH_ANNOTATION: 'index/hg38_chr14_105-106MB_switch_regions.bed'
+LAST_INDEX: 'index/hg38_chr14_105-106MBdb'
+MINIMAP_INDEX: ''
+ALIGNER: 'LAST'
+TELO_REPEAT: ''
+NMAX: 200000
+MAX_GAP: 75
+BINSIZE: 50
+BLACKLIST_REGIONS: ''
+WEIGHTS: 'cluster'
+CLUSTERING_METRIC: 'cosine'
+CLUSTERING_METHOD: 'weighted'
+CLUSTERING_CUTOFF: 0.01
+CLUSTERING_N_NEIGHBORS: 500
+CLUSTERING_N_BACKUP: 1000
+CLUSTER_DOWNSAMPLING_NREADS: 1000
+CLUSTER_DOWNSAMPLING_NREPS: 10
+SIMULATION_PARAMS:
+  input_clones: 'input/HD_clones.bed'
+  input_pars: 'input/input_pars.par'
+  model: "poisson"
+  mix_n10_s1_10k:
+    nclones: 10
+    nreads: 1000
+    seed: 1
+  mix_n10_s2_10k:
+    nclones: 10
+    nreads: 1000
+    seed: 2
+  mix_n25_s1_10k:
+    nclones: 25
+    nreads: 400
+    seed: 1
+  mix_n25_s2_10k:
+    nclones: 25
+    nreads: 400
+    seed: 2
+  mix_n100_s1_10k:
+    nclones: 100
+    nreads: 100
+    seed: 1
+  mix_n100_s2_10k:
+    nclones: 100
+    nreads: 100
+    seed: 2
+  mix_n250_s1_10k:
+    nclones: 250
+    nreads: 40
+    seed: 1
+  mix_n250_s2_10k:
+    nclones: 250
+    nreads: 40
+    seed: 2
+  mix_n1000_s1_10k:
+    nclones: 1000
+    nreads: 10
+    seed: 1
+  mix_n1000_s2_10k:
+    nclones: 1000
+    nreads: 10
+    seed: 2
+  mix_n2500_s1_10k:
+    nclones: 2500
+    nreads: 4
+    seed: 1
+  mix_n2500_s2_10k:
+    nclones: 2500
+    nreads: 4
+    seed: 2
+  mix_n10000_s1_10k:
+    nclones: 10000
+    nreads: 1
+    seed: 1
+  mix_n10000_s2_10k:
+    nclones: 10000
+    nreads: 1
+    seed: 2
+  mix_n25000_s1_10k:
+    nclones: 25000
+    nreads: .4
+    seed: 1
+  mix_n25000_s2_10k:
+    nclones: 25000
+    nreads: .4
+    seed: 2
+  mix_n10_s1_20k:
+    nclones: 10
+    nreads: 2000
+    seed: 1
+  mix_n10_s2_20k:
+    nclones: 10
+    nreads: 2000
+    seed: 2
+  mix_n25_s1_20k:
+    nclones: 25
+    nreads: 800
+    seed: 1
+  mix_n25_s2_20k:
+    nclones: 25
+    nreads: 800
+    seed: 2
+  mix_n100_s1_20k:
+    nclones: 100
+    nreads: 200
+    seed: 1
+  mix_n100_s2_20k:
+    nclones: 100
+    nreads: 200
+    seed: 2
+  mix_n250_s1_20k:
+    nclones: 250
+    nreads: 80
+    seed: 1
+  mix_n250_s2_20k:
+    nclones: 250
+    nreads: 80
+    seed: 2
+  mix_n1000_s1_20k:
+    nclones: 1000
+    nreads: 20
+    seed: 1
+  mix_n1000_s2_20k:
+    nclones: 1000
+    nreads: 20
+    seed: 2
+  mix_n2500_s1_20k:
+    nclones: 2500
+    nreads: 8
+    seed: 1
+  mix_n2500_s2_20k:
+    nclones: 2500
+    nreads: 8
+    seed: 2
+  mix_n10000_s1_20k:
+    nclones: 10000
+    nreads: 2
+    seed: 1
+  mix_n10000_s2_20k:
+    nclones: 10000
+    nreads: 2
+    seed: 2
+  mix_n25000_s1_20k:
+    nclones: 25000
+    nreads: .8
+    seed: 1
+  mix_n25000_s2_20k:
+    nclones: 25000
+    nreads: .8
+    seed: 2
+  mix_n10_s1_50k:
+    nclones: 10
+    nreads: 5000
+    seed: 1
+  mix_n10_s2_50k:
+    nclones: 10
+    nreads: 5000
+    seed: 2
+  mix_n25_s1_50k:
+    nclones: 25
+    nreads: 2000
+    seed: 1
+  mix_n25_s2_50k:
+    nclones: 25
+    nreads: 2000
+    seed: 2
+  mix_n100_s1_50k:
+    nclones: 100
+    nreads: 500
+    seed: 1
+  mix_n100_s2_50k:
+    nclones: 100
+    nreads: 500
+    seed: 2
+  mix_n250_s1_50k:
+    nclones: 250
+    nreads: 200
+    seed: 1
+  mix_n250_s2_50k:
+    nclones: 250
+    nreads: 200
+    seed: 2
+  mix_n1000_s1_50k:
+    nclones: 1000
+    nreads: 50
+    seed: 1
+  mix_n1000_s2_50k:
+    nclones: 1000
+    nreads: 50
+    seed: 2
+  mix_n2500_s1_50k:
+    nclones: 2500
+    nreads: 20
+    seed: 1
+  mix_n2500_s2_50k:
+    nclones: 2500
+    nreads: 20
+    seed: 2
+  mix_n10000_s1_50k:
+    nclones: 10000
+    nreads: 5
+    seed: 1
+  mix_n10000_s2_50k:
+    nclones: 10000
+    nreads: 5
+    seed: 2
+  mix_n25000_s1_50k:
+    nclones: 25000
+    nreads: 2
+    seed: 1
+  mix_n25000_s2_50k:
+    nclones: 25000
+    nreads: 2
+    seed: 2
+  mix_n10_s1_100k:
+    nclones: 10
+    nreads: 10000
+    seed: 1
+  mix_n10_s2_100k:
+    nclones: 10
+    nreads: 10000
+    seed: 2
+  mix_n25_s1_100k:
+    nclones: 25
+    nreads: 4000
+    seed: 1
+  mix_n25_s2_100k:
+    nclones: 25
+    nreads: 4000
+    seed: 2
+  mix_n100_s1_100k:
+    nclones: 100
+    nreads: 1000
+    seed: 1
+  mix_n100_s2_100k:
+    nclones: 100
+    nreads: 1000
+    seed: 2
+  mix_n250_s1_100k:
+    nclones: 250
+    nreads: 400
+    seed: 1
+  mix_n250_s2_100k:
+    nclones: 250
+    nreads: 400
+    seed: 2
+  mix_n1000_s1_100k:
+    nclones: 1000
+    nreads: 100
+    seed: 1
+  mix_n1000_s2_100k:
+    nclones: 1000
+    nreads: 100
+    seed: 2
+  mix_n2500_s1_100k:
+    nclones: 2500
+    nreads: 40
+    seed: 1
+  mix_n2500_s2_100k:
+    nclones: 2500
+    nreads: 40
+    seed: 2
+  mix_n10000_s1_100k:
+    nclones: 10000
+    nreads: 10
+    seed: 1
+  mix_n10000_s2_100k:
+    nclones: 10000
+    nreads: 10
+    seed: 2
+  mix_n25000_s1_100k:
+    nclones: 25000
+    nreads: 4
+    seed: 1
+  mix_n25000_s2_100k:
+    nclones: 25000
+    nreads: 4
+    seed: 2
+  mix_n10_s1_200k:
+    nclones: 10
+    nreads: 20000
+    seed: 1
+  mix_n10_s2_200k:
+    nclones: 10
+    nreads: 20000
+    seed: 2
+  mix_n25_s1_200k:
+    nclones: 25
+    nreads: 8000
+    seed: 1
+  mix_n25_s2_200k:
+    nclones: 25
+    nreads: 8000
+    seed: 2
+  mix_n100_s1_200k:
+    nclones: 100
+    nreads: 2000
+    seed: 1
+  mix_n100_s2_200k:
+    nclones: 100
+    nreads: 2000
+    seed: 2
+  mix_n250_s1_200k:
+    nclones: 250
+    nreads: 800
+    seed: 1
+  mix_n250_s2_200k:
+    nclones: 250
+    nreads: 800
+    seed: 2
+  mix_n1000_s1_200k:
+    nclones: 1000
+    nreads: 200
+    seed: 1
+  mix_n1000_s2_200k:
+    nclones: 1000
+    nreads: 200
+    seed: 2
+  mix_n2500_s1_200k:
+    nclones: 2500
+    nreads: 80
+    seed: 1
+  mix_n2500_s2_200k:
+    nclones: 2500
+    nreads: 80
+    seed: 2
+  mix_n10000_s1_200k:
+    nclones: 10000
+    nreads: 20
+    seed: 1
+  mix_n10000_s2_200k:
+    nclones: 10000
+    nreads: 20
+    seed: 2
+  mix_n25000_s1_200k:
+    nclones: 25000
+    nreads: 8
+    seed: 1
+  mix_n25000_s2_200k:
+    nclones: 25000
+    nreads: 8
+    seed: 2
