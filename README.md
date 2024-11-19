@@ -34,3 +34,5 @@ contents:
 - `data`: contains input data for paper figures (prepared using `prepare_data.R`
 
 - `paper_figures.Rmd`: R code to produce paper figures
+
+- `supplementary_note.ipynb`: python code to make plots for supplementary note
