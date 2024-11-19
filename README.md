@@ -22,7 +22,7 @@ contents:
         **raw sequencing data for human donors cannot be shared due to patient privacy legislation**
 
         - `demultiplex_dataset.sh` is used to demultiplex input for each run, demultiplexed fastq and `info.csv` files would be expected in `input`
-	- get hg38 genome and gencode v33 reference, create LAST index
+        - get hg38 genome and gencode v33 reference, create LAST index
         - `config.yaml` for "regular" runs
         - `config_reads_averaging.yaml` to use averaging of features over reads not clusters
         - `combine_replicates.sh` to pool reads from technical replicates
