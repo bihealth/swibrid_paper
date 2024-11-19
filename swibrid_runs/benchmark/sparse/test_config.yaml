@@ -26,7 +26,7 @@ CLUSTERING_N_BACKUP: 1000
 CLUSTER_DOWNSAMPLING_NREADS: 1000
 CLUSTER_DOWNSAMPLING_NREPS: 10
 SIMULATION_PARAMS:
-  input_clones: 'input/HD_clones.bed'
+  input_clones: 'input/input_clones.bed'
   input_pars: 'input/input_pars.par'
   model: "poisson"
   mix_n10_s1_10k:

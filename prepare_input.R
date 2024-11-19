@@ -275,17 +275,17 @@ CH12.data.noSg <- mouse_results_no_Sg %>%
   dplyr::select(tidyselect::any_of(c('genotype','batch','sample',columns$col))) 
 write.csv(CH12.data.noSg, 'data/CH12_data_noSg.csv')
 
-mouse_sample_sheet <- rbind(read.csv('../sodar/2019_tests/a_2019_test.txt',
-                                     sep='\t',header=1) %>%
-                              dplyr::left_join(read.csv('../sodar/2019_tests/s_2019_test.txt',sep='\t',header=1),
-                                               by='Sample.Name') %>%
-                              dplyr::mutate(material=gsub(" KO",'',Parameter.Value.Template.),
-                                            batch=as.character(Parameter.Value.Batch.),
-                                            QC=Parameter.Value.QC.,
-                                            sample=Extract.Name.1,
-                                            genotype='WT') %>%
-                              dplyr::filter(batch=='20240817') %>%
-                              dplyr::select(material,batch,genotype,sample,QC))
+mouse_sample_sheet <- read.csv('../sodar/2019_tests/a_2019_test.txt',
+                               sep='\t',header=1) %>%
+  dplyr::left_join(read.csv('../sodar/2019_tests/s_2019_test.txt',sep='\t',header=1),
+                   by='Sample.Name') %>%
+  dplyr::mutate(material=gsub(" KO",'',Parameter.Value.Template.),
+                batch=as.character(Parameter.Value.Batch.),
+                QC=Parameter.Value.QC.,
+                sample=Extract.Name.1,
+                genotype='WT') %>%
+  dplyr::filter(batch=='20240817') %>%
+  dplyr::select(material,batch,genotype,sample,QC)
   
                             
 mouse.data <- mouse_results %>%
@@ -395,3 +395,46 @@ VDJ_results <- lapply(vdj_samples, function(sample)
                 ncells=as.numeric(gsub('^[0-9]*_([0-9]*)_([0-9])','\\1',sample))) %>%
   dplyr::select(cloneId,readCount,uniqueMoleculeCount,allVHitsWithScore,allCHitsWithScore,aaSeqCDR3,sample,donor,ncells)
 write.csv(VDJ_results, 'data/VDJ_results.csv')
+
+ont <- read.csv("../mouse_samples/demultiplexing/barcodes_primers.fa",header=FALSE, sep='\t')
+barcodes <- setNames(ont[!grepl('^>',ont$V1),'V1'],gsub('^>','',ont[grepl("^>",ont$V1),'V1']))
+
+GEO_sample_sheet <- rbind(read.csv('../sodar/2022_CH12/a_2022_CH12.txt',
+                                   sep='\t',header=1) %>%
+                            dplyr::left_join(read.csv('../sodar/2022_CH12/s_2022_CH12.txt',sep='\t',header=1),
+                                             by='Sample.Name') %>%
+                            dplyr::mutate(genotype=Characteristics.Genotype.,
+                                          batch=as.character(Parameter.Value.Batch.),
+                                          material='CH12',
+                                          barcode=Parameter.Value.Barcode.,
+                                          PCR_cycles=Parameter.Value.PCR.cycles.,
+                                          PCR_Volume=Parameter.Value.PCR.volume.,
+                                          primers=Parameter.Value.Primers.,
+                                          barcode=Parameter.Value.Barcode.,
+                                          Polymerase=Parameter.Value.DNA.polymerase.,
+                                          Activation=Parameter.Value.activation.,
+                                          sample=Extract.Name.1) %>%
+                            dplyr::filter(!grepl("20220411|20220810|20220618",batch)) %>%
+                            dplyr::select(sample,material,genotype,barcode,PCR_cycles,PCR_Volume,primers,barcode,Polymerase,Activation,batch),
+                          read.csv('../sodar/2019_tests/a_2019_test.txt',
+                                   sep='\t',header=1) %>%
+                            dplyr::left_join(read.csv('../sodar/2019_tests/s_2019_test.txt',sep='\t',header=1),
+                                             by='Sample.Name') %>%
+                            dplyr::mutate(material=gsub(" KO",'',Parameter.Value.Template.),
+                                          batch=as.character(Parameter.Value.Batch.),
+                                          PCR_cycles=Parameter.Value.PCR.cycles.,
+                                          PCR_Volume=Parameter.Value.PCR.volume.,
+                                          primers="M-G,M-A",
+                                          barcode=Parameter.Value.Barcode.,
+                                          Polymerase=Parameter.Value.DNA.polymerase.,
+                                          Activation="",
+                                          sample=Extract.Name.1,
+                                          genotype='WT') %>%
+                            dplyr::filter(batch=='20240817') %>%
+                            dplyr::select(sample,material,genotype,barcode,PCR_cycles,PCR_Volume,primers,barcode,Polymerase,Activation,batch)) %>%
+  dplyr::group_by(material, genotype, primers) %>% 
+  dplyr::mutate(replicate=seq(1:n()),
+                sequence=barcodes[barcode]) %>%
+  write.csv('GEO_sample_sheet.csv')
+                          
+                          
