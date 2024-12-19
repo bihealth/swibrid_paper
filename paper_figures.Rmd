@@ -1,7 +1,7 @@
 ---
 title: "paper figures"
 author: "Benedikt Obermayer"
-date: "2024/11/12"
+date: "2024/12/10"
 output: 
   html_document:
     toc: true
@@ -30,7 +30,7 @@ library(variancePartition)
 library(RColorBrewer)
 library(gtools)
 library(grid)
-library(DescTools)
+#library(DescTools)
 library(lme4)
 ```
 
@@ -158,7 +158,7 @@ diagnosis_colors <- c('control'='gray20','HD'='gray20',
                       'subclass'='lightslategray','CVID'='coral1',
                       'ICOS'='#8DD3C7','Kabuki'='#BEBADA',
                       'IgG4def'='burlywood4','TNFRSF13B'='palegreen4',
-                      'other'='#BC80BD','AID'='#FDB462',
+                      'other'='#BC80BD','AID'='darkgoldenrod3',
                       'ATM'='#A65628','LIG4'='mediumpurple2',
                       'NIPBL'='#FCCDE5','BRCA1'='darkkhaki',
                       'NFKB2'='#FFED6F','PI3K'='#80B1D3')
@@ -489,13 +489,13 @@ confirm that downsampled diversity measures are better
 tmp <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(gsub('log10_nreads','# reads',variable),
-                                levels=rev(c('donor','cohort','batch','sequencing','# reads','Residuals')))) %>%
-  dplyr::filter(variable!='Residuals', category %in% c('diversity','diversity_raw'), variable!='cohort') 
+                                levels=rev(c('donor','batch','sequencing','# reads','Residuals')))) %>%
+  dplyr::filter(variable!='Residuals', category %in% c('diversity','diversity_raw')) 
 
 pvals <- tmp %>%
   dplyr::group_by(variable) %>%
-  do(wc=wilcox.test(variance ~ category, data=.)) %>%
-  summarise(variable, p=wc$p.value)
+  dplyr::do(wc=wilcox.test(variance ~ category, data=.)) %>%
+  dplyr::summarise(variable, p=wc$p.value)
 
 ggplot(tmp,aes(x=variable, y=100*variance, fill=category)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
@@ -524,8 +524,8 @@ tmp <- HD.var %>%
 
 pvals <- tmp %>% 
   dplyr::group_by(variable) %>%
-  do(wc=wilcox.test(variance ~ category, data=., exact=FALSE)) %>%
-  summarise(variable, p=wc$p.value)
+  dplyr::do(wc=wilcox.test(variance ~ category, data=., exact=FALSE)) %>%
+  dplyr::summarise(variable, p=wc$p.value)
 
 ggplot(tmp, aes(x=variable, y=100*variance, fill=category)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
@@ -581,8 +581,8 @@ tmp <- rbind(HD.var %>%
 
 pvals <- tmp %>%
   dplyr::group_by(variable) %>%
-  do(wc=wilcox.test(variance ~ averaging, paired=TRUE, data=., exact=FALSE)) %>%
-  summarise(variable, p=wc$p.value)
+  dplyr::do(wc=wilcox.test(variance ~ averaging, paired=TRUE, data=., exact=FALSE)) %>%
+  dplyr::summarise(variable, p=wc$p.value)
 
 ggplot(tmp, aes(x=variable, y=100*variance, fill=averaging)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
@@ -895,6 +895,8 @@ ggplot(pcadat,aes(x=PC1,y=PC2, color=genotype)) +
   scale_fill_manual(values=genotype_colors)
 ```
 
+(this PCA uses `r dim(vincendeau.X)[2]` features)
+
 show mean scaled values of Vincendeau in a scatter plot (big dots are significant, small ones are not)
 
 ```{r Fig2H, fig.width=7 * fig_scale, fig.height=2.25 * fig_scale}
@@ -1074,6 +1076,8 @@ plot_grid(p1 + theme(legend.position='none'),
 #           ncol=3)
 ```
 
+(this PCA uses `r dim(mouse.X)[2]` and `r dim(mouse.X.noSg)[2]` features)
+
 selected features in the CH12 data (2023 batches)
 
 ```{r Fig3D,fig.width=3.5 * fig_scale,fig.height=2.5 * fig_scale}
@@ -1166,6 +1170,8 @@ ggplot(pcadat,aes(x=PC1,y=PC2, color=genotype)) +
 #        color='',shape='')
 
 ```
+
+(this PCA uses `r dim(CH12.X)[2]` features)
 
 heatmap of all selected features
 
@@ -1523,11 +1529,14 @@ ggplot(pcadat.subclass,aes(x=PC1,y=PC2)) +
   guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=3)) +
   theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
         legend.position='bottom',
+        legend.key.spacing.y=unit(0,'mm'),
         legend.box='horizontal') +
   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
        color='',shape='',fill='')
 ```
+
+(this PCA uses `r dim(FB.X.subclass)[2]` features)
 
 show subclass features for HD and subclass-deficient people
 
@@ -1540,31 +1549,44 @@ tmp <- FB.data.pooled %>%
   gather(feature, frac_clusters, subclass.cols) %>%
   dplyr::mutate(feature=factor(gsub('frac_clusters_','',feature),
                                levels=gsub('frac_clusters_','',subclass.cols)))
-ggplot(tmp, aes(x=feature, y=frac_clusters, color=diagnosis)) +
-  geom_boxplot(position=position_dodge(width=.8),width=.7,outlier.shape=NA) +
-  geom_point(position=position_dodge(width=.8), size=.5) +
+
+pvals <- tmp %>%
+  dplyr::group_by(feature) %>%
+  dplyr::do(wc=wilcox.test(frac_clusters ~ diagnosis, data=.),
+            y=max(.$frac_clusters)) %>%
+  dplyr::summarise(feature, p.value=wc$p.value, y)
+
+ggplot(tmp, aes(x=feature, y=frac_clusters)) +
+  geom_boxplot(aes(color=diagnosis), position=position_dodge(width=.8),width=.7,outlier.shape=NA) +
+  geom_point(aes(color=diagnosis), position=position_dodge(width=.8), size=.5) +
   geom_line(data=tmp %>% dplyr::filter(diagnosis=='control'),
             aes(group=donor), position=position_nudge(x=-.2), alpha=.25, size=.25) +
   geom_line(data=tmp %>% dplyr::filter(diagnosis=='subclass'),
             aes(group=donor), position=position_nudge(x=+.2), alpha=.25, size=.25) +
+  geom_text(data=pvals, aes(label=stars.pval(p.value), y=1.1*y)) +
   scale_color_manual(values=diagnosis_colors) +
   my_theme() +
+  coord_cartesian(clip='off') +
   theme(legend.position=c(.8,.8)) +
   labs(color='',x='', y='fraction clusters')
 ```
 
 correlate FACS against SWIBRID
 
-```{r FigS4X2, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
-FB.data.pooled %>%
+```{r FigS4X2, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
+tmp <- FB.data.pooled %>%
   dplyr::mutate(alpha_ratio_FACS=pct_IgA/(pct_IgA + pct_IgG)) %>%
-  ggplot(aes(x=alpha_ratio_FACS, y=alpha_ratio_clusters, color=status)) + 
+  dplyr::group_by(status) %>%
+  dplyr::mutate(status_R=paste0(status," (R=",signif(cor(alpha_ratio_FACS,alpha_ratio_clusters,use='na.or.complete'),2),")"))
+ggplot(tmp, aes(x=alpha_ratio_FACS, y=alpha_ratio_clusters, color=status)) + 
   geom_abline(slope=1, intercept=0, size=.5) +
-  stat_cor(method = "pearson", aes(label=..r.label..), size=2.5, show.legend=FALSE, label.x=.75, label.y=c(.4, .33)) +
+  #stat_cor(method = "pearson", aes(label=..r.label..), size=2.5, show.legend=FALSE, label.x=.75, label.y=c(.4, .33)) +
   geom_point() + 
   my_theme() +
-  scale_color_manual(values=diagnosis_colors) +
-  labs(x='FACS', y='SWIBRID', title='IgA / (IgA + IgG)')
+  scale_color_manual(values=diagnosis_colors, breaks=unique(tmp$status), labels=unique(tmp$status_R)) +
+  labs(x='FACS', y='SWIBRID', title='IgA / (IgA + IgG)') +
+  theme(legend.position=c(.8,.15),
+        legend.box=element_blank())
 ```
 
 
@@ -1670,7 +1692,7 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='testing'),
 
 do ridge regression from training to testing or validation data (take out subclass def.)
 
-```{r Fig4H, fig.width=2.5 * fig_scale, fig.height=1.5 * fig_scale}
+```{r Fig4H, fig.width=2. * fig_scale, fig.height=1.5 * fig_scale}
 set.seed(1)
 train.here <- train & human.meta[train,'diagnosis'] != 'subclass'
 cv_model <- cv.glmnet(as.matrix(human.X[train.here,]), human.meta[train.here,'status']!='control', alpha = 0, family='binomial')
@@ -1776,6 +1798,7 @@ class_df <- data.frame(class=plyr::revalue(as.character(cutree(dend, k = 4)),
                                              '1'='cluster2',
                                              '4'='cluster2')),
                        name=row.names(FB.X))
+
 class_colors <- c('cluster3'=diagnosis_colors[['control']],
                   'cluster1'=cat_cols[['structural']],
                   'cluster2'=cat_cols[['diversity']])
@@ -1849,7 +1872,7 @@ hm1 %v% hm3
 
 show PCA loadings per category
 
-```{r FigS4C, fig.width=3 * fig_scale, fig.height=3 * fig_scale}
+```{r FigS4C, fig.width=3 * fig_scale, fig.height=4 * fig_scale}
 tmp <- data.frame(abs(pca$rotation)) %>%
   tibble::rownames_to_column('col') %>%
   dplyr::left_join(columns, by='col') %>%
@@ -1879,38 +1902,75 @@ ggplot(tmp,aes(x=PC1,y=PC2, color=col, shape=col)) +
   theme(legend.key.height=unit(3,'mm'),
         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
         legend.spacing=unit(0,'mm'),
+        legend.key.spacing.y=unit(0,'mm'),
         legend.position='bottom',
         legend.box='horizontal') +
+  guides(color=guide_legend(ncol=2),
+         shape=guide_legend(ncol=2)) +
   labs(x='abs. PC 1', y='abs. PC 2',
        color='',shape='',fill='',alpha='')
 ```
 
 categorize the samples
 
-```{r FigS4D, fig.width=3 * fig_scale, fig.height=1.5 * fig_scale}
+```{r FigS4D, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
 ggplot(pca_hm %>% tibble::rownames_to_column('name') %>%
          dplyr::filter(dataset!='validation') %>%
          dplyr::left_join(class_df, by='name'), 
        aes(x=PC1,y=PC2, color=class, shape=dataset)) +
   geom_point(size=1) +
+  geom_point(data=pcadat.combined %>% dplyr::filter(dataset=='validation'),
+             aes(color=diagnosis), size=1) +
   geom_line(aes(group=donor)) +
   my_theme() +
-  scale_shape_manual(values=c('testing'=15,'training'=16,'validation'=18)) +
-  scale_color_manual(values=class_colors) +
+  scale_shape_manual(values=c('testing'=16,'training'=16,'validation'=15), guide='none') +
+  scale_color_manual(values=c(class_colors,diagnosis_colors), 
+                     breaks=c(names(class_colors),
+                              names(diagnosis_colors))) +
+  guides(color=guide_legend(override.aes = list(shape=c(rep(16,3),rep(15,7)),size=2), ncol=4)) +
   theme(legend.key.height=unit(3,'mm'),
+        legend.position='bottom',
+        legend.key.spacing.y=unit(0,'mm'),
         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2) +
   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
-       color='class')
+       color='')
+```
+
+what drives clustering within clusters 1 + 2?
+
+```{r cluster_drivers, fig.width=3 * fig_scale, fig.height=3 * fig_scale}
+use <- class_df$class!='cluster3'
+cluster.var <- fitExtractVarPartModel(t(FB.X[use,]), ~ (1 | class), data=class_df[use,'class',drop=FALSE]) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column('col') %>%
+  gather(variable,variance,-col)
+
+cluster.var %>%
+  dplyr::filter(variable=='class') %>%
+  dplyr::left_join(columns %>% dplyr::mutate(col=gsub('_downsampled|_switch','',col)) %>% 
+                     dplyr::filter(category %in% c('context','breaks','isotypes','diversity','structural')), 
+                   by='col') %>%
+  dplyr::arrange(variance) %>%
+  dplyr::mutate(col=factor(col, levels=col)) %>%
+  ggplot(aes(y=variance, x=col, fill=category)) + 
+  geom_col() +
+  my_theme() +
+  coord_flip() +
+  scale_fill_manual(values=cat_cols) +
+  labs(x='',y='explained variance between cluster1+2 by class') +
+  theme(legend.position=c(.9,.1))
 ```
 
 box plots for selected features
 
-```{r Fig4J, fig.width=4.5 * fig_scale, fig.height=1.7 * fig_scale}
-features.here <- c('frac_clusters_SG2',
+```{r Fig4J, fig.width=5.25 * fig_scale, fig.height=1.7 * fig_scale}
+features.here <- c('frac_clusters_SG1',
+                   'frac_clusters_SG2',
                    'mean_cluster_size_downsampled',
-                   'alpha_ratio_clusters',
                    'n_homology_switch',
+                   'n_untemplated_switch',
+                   'frac_breaks_intra',
                    'frac_breaks_duplications')
 
 groups <- c('cluster1','cluster2','cluster3','control','BRCA1','ATM')
@@ -1935,6 +1995,7 @@ ggplot(tmp, aes(x=group,y=value,fill=group)) +
   geom_boxplot(outlier.shape=NA, lwd=.5) +
   geom_jitter(width=.1,height=0,size=.5) +
   stat_compare_means(comparisons=list(c('cluster1','cluster3'),
+                                      c('cluster1','cluster2'),
                                       c('cluster2','cluster3'),
                                       c('control','ATM'),
                                       c('control','BRCA1')),
@@ -1952,7 +2013,7 @@ ggplot(tmp, aes(x=group,y=value,fill=group)) +
 
 check association of clinics with features
 
-```{r clinical_features, fig.width=3 * fig_scale, fig.height=2.5 * fig_scale}
+```{r FigS4X4, fig.width=3 * fig_scale, fig.height=2.5 * fig_scale}
 pvals <- list()
 for (x in c("Tetanus",
             "Diphteria",
@@ -1968,7 +2029,6 @@ for (x in c("Tetanus",
   }
 }
 
-pvals <- list()
 for (x in c("splenomegaly",
             "lymphoproliferation",
             "lung")) {
@@ -1983,7 +2043,7 @@ for (x in c("splenomegaly",
                                            col=f)
   }
 }
-  
+
 FB.data.pooled[FB.samples, ] %>%
   dplyr::mutate(Tetanus=ifelse(status=='control','positive',Tetanus),
                 Diphteria=ifelse(status=='control','positive',Diphteria),
@@ -2033,7 +2093,7 @@ FB.data.pooled[FB.samples, ] %>%
 
 check aggregated scores
 
-```{r aggregated_FB_heatmap, fig.width=5.5 * fig_scale, fig.height=3.5 * fig_scale}
+```{r FigS4X5, fig.width=5.5 * fig_scale, fig.height=3.5 * fig_scale}
 FB.X.aggregated <-  FB.data.pooled[FB.samples, selected.cols] %>%
   dplyr::mutate_if(is.numeric, scale) %>%
   tibble::rownames_to_column('sample') %>%
@@ -2043,24 +2103,38 @@ FB.X.aggregated <-  FB.data.pooled[FB.samples, selected.cols] %>%
   dplyr::summarise(value=mean(abs(value))) %>%
   dplyr::left_join(FB.meta %>% tibble::rownames_to_column('sample'), by='sample') %>%
   #dplyr::filter(diagnosis!='control') %>%
-  dplyr::select(sample,category,value) %>%
+  dplyr::group_by(category) %>%
+  dplyr::mutate(#value=(value-mean(value[diagnosis=='control'])/sd(value[diagnosis=='control'])),
+                name=gsub('t','',gsub('FB_','',paste0(donor,'_',timepoint)))) %>%
+  dplyr::select(name,category,value) %>%
   spread(category,value) %>%
-  tibble::column_to_rownames('sample')
+  tibble::column_to_rownames('name')
 
-hm2 <- Heatmap(t(FB.X.aggregated),
-               #cluster_columns=dend,
-               col=colorRamp2(c(0, 1.5), c("lightyellow2","steelblue3")),
+FB.meta.aggregated <- FB.meta[,c('diagnosis','sex','age',
+                                 'donor','timepoint'),drop=FALSE] %>% 
+  dplyr::filter(!(diagnosis %in% c('control','subclass'))) %>%
+  tibble::remove_rownames() %>%
+  dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(donor,'_',timepoint)))) %>%
+  dplyr::left_join(class_df,by='name') %>%
+  dplyr::select(-c(donor,timepoint)) %>%
+  tibble::column_to_rownames('name')
+
+samples <- row.names(FB.meta.aggregated)
+dend <- hclust(dist(FB.X.aggregated[samples,]))
+dend <- reorder(as.dendrogram(dend),wts=order(match(FB.meta.aggregated %>%
+                                                      tibble::rownames_to_column('sample') %>%
+                                                      dplyr::arrange(class) %>%
+                                                      dplyr::pull(sample),
+                                                    samples)),agglo.FUN=mean)
+
+hm2 <- Heatmap(t(FB.X.aggregated[samples,]),
+               cluster_columns=dend,
+               col=colorRamp2(c(0, 2), c("lightyellow2","darkorchid3")),
                cluster_rows=TRUE,
                show_row_names=TRUE,
                show_column_names=TRUE,
                show_row_dend=TRUE,
-               top_annotation=HeatmapAnnotation(df=FB.meta[row.names(FB.X.aggregated),c('diagnosis','sex','age',
-                                                                                        'donor','timepoint'),drop=FALSE] %>% 
-                                                  tibble::remove_rownames() %>%
-                                                  dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(donor,'_',timepoint)))) %>%
-                                                  dplyr::left_join(class_df,by='name') %>%
-                                                  dplyr::select(-c(donor,timepoint)) %>%
-                                                  tibble::column_to_rownames('name'),
+               top_annotation=HeatmapAnnotation(df=FB.meta.aggregated,
                                                 show_annotation_name=TRUE,
                                                 show_legend=TRUE,
                                                 simple_anno_size=unit(2,'mm'),
@@ -2094,29 +2168,30 @@ hm2 <- Heatmap(t(FB.X.aggregated),
 hm2
 ```
 
-```{r aggregated_FB_boxplots, fig.width=4.5 * fig_scale, fig.height=1.7 * fig_scale}
-tmp <- FB.X.aggregated %>%
-  tibble::rownames_to_column('sample') %>%
-  dplyr::left_join(FB.meta %>% tibble::rownames_to_column('sample'), by='sample') %>%
-  dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(donor,'_',timepoint)))) %>%
-  dplyr::left_join(class_df,by='name') %>%
-  gather(col,value,c('diversity','isotypes','breaks','context','structural'))
 
-ggplot(tmp, aes(x=class,y=value,fill=class)) +
-  geom_boxplot(outlier.shape=NA, lwd=.5) +
-  geom_jitter(width=.1,height=0,size=.5) +
-  stat_compare_means(comparisons=list(c('cluster1','cluster3'),
-                                      c('cluster2','cluster3'),
-                                      c('cluster1','cluster2')),
-                     method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) +
-  facet_wrap(.~col,ncol=length(features.here),scales='free_y') +
-  my_theme() +
-  coord_cartesian(clip='off') +
-  scale_fill_manual(values=c(diagnosis_colors,class_colors)) +
-  theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1),
-        legend.position='none') +
-  labs(x='',y='category score', color='diagnosis')
-```
+<!-- ```{r aggregated_FB_boxplots, fig.width=4.5 * fig_scale, fig.height=1.7 * fig_scale} -->
+<!-- tmp <- FB.X.aggregated %>% -->
+<!--   tibble::rownames_to_column('sample') %>% -->
+<!--   dplyr::left_join(FB.meta %>% tibble::rownames_to_column('sample'), by='sample') %>% -->
+<!--   dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(donor,'_',timepoint)))) %>% -->
+<!--   dplyr::left_join(class_df,by='name') %>% -->
+<!--   gather(col,value,c('diversity','isotypes','breaks','context','structural')) -->
+
+<!-- ggplot(tmp, aes(x=class,y=value,fill=class)) + -->
+<!--   geom_boxplot(outlier.shape=NA, lwd=.5) + -->
+<!--   geom_jitter(width=.1,height=0,size=.5) + -->
+<!--   stat_compare_means(comparisons=list(c('cluster1','cluster3'), -->
+<!--                                       c('cluster2','cluster3'), -->
+<!--                                       c('cluster1','cluster2')), -->
+<!--                      method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) + -->
+<!--   facet_wrap(.~col,ncol=length(features.here),scales='free_y') + -->
+<!--   my_theme() + -->
+<!--   coord_cartesian(clip='off') + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,class_colors)) + -->
+<!--   theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1), -->
+<!--         legend.position='none') + -->
+<!--   labs(x='',y='category score', color='diagnosis') -->
+<!-- ``` -->
 
 check correlation with measured B cell proportion in FACS
 
@@ -2171,77 +2246,6 @@ FB.data.pooled %>%
   theme(legend.position=c(.2,.9))
 
 
-```
-
-what drives clustering within clusters 1 + 2?
-
-```{r cluster_drivers, fig.width=3 * fig_scale, fig.height=3 * fig_scale}
-use <- class_df$class!='cluster3'
-cluster.var <- fitExtractVarPartModel(t(FB.X[use,]), ~ (1 | class), data=class_df[use,'class',drop=FALSE]) %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column('col') %>%
-  gather(variable,variance,-col)
-
-cluster.var %>%
-  dplyr::filter(variable=='class') %>%
-  dplyr::left_join(columns %>% dplyr::mutate(col=gsub('_downsampled|_switch','',col)) %>% 
-                     dplyr::filter(category %in% c('context','breaks','isotypes','diversity','structural')), 
-                   by='col') %>%
-  dplyr::arrange(variance) %>%
-  dplyr::mutate(col=factor(col, levels=col)) %>%
-  ggplot(aes(y=variance, x=col, fill=category)) + 
-  geom_col() +
-  my_theme() +
-  coord_flip() +
-  scale_fill_manual(values=cat_cols) +
-  labs(x='',y='explained variance between cluster1+2 by class') +
-  theme(legend.position=c(.9,.1))
-```
-
-box plots for selected features
-
-```{r Fig4K, fig.width=4. * fig_scale, fig.height=1.7 * fig_scale}
-features.here <- c('frac_clusters_SG1',
-                   'n_untemplated_switch',
-                   'frac_breaks_intra',
-                   'mean_length')
-
-groups <- c('cluster1','cluster2','cluster3','control','BRCA1','ATM')
-
-tmp <- cbind(rbind(FB.data.pooled[,features.here],
-                   QP.data[,features.here]),
-             human.meta[,c('diagnosis','dataset','donor','timepoint')]) %>%
-  tibble::rownames_to_column('sample_donor') %>%
-  dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(donor,'_',timepoint)))) %>%
-  dplyr::left_join(class_df,by='name') %>%
-  dplyr::mutate(group=ifelse(dataset=='validation',as.character(diagnosis),as.character(class))) %>%
-  dplyr::filter(group %in% groups) %>%
-  dplyr::mutate(group=factor(group,levels=groups)) %>%
-  dplyr::group_by(group) %>%
-  dplyr::mutate(ng=n_distinct(donor),
-                group_new=paste0(group,' (n=',ng,')')) %>%
-  gather(col,value,features.here) %>%
-  dplyr::mutate(col=factor(gsub("_downsampled|_switch",'',col),
-                           levels=gsub("_downsampled|_switch","",features.here)))
-
-ggplot(tmp, aes(x=group,y=value,fill=group)) +
-  geom_boxplot(outlier.shape=NA, lwd=.5) +
-  geom_jitter(width=.1,height=0,size=.5) +
-  stat_compare_means(comparisons=list(c('cluster1','cluster3'),
-                                      c('cluster1','cluster2'),
-                                      c('cluster2','cluster3'),
-                                      c('control','ATM'),
-                                      c('control','BRCA1')),
-                     method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) +
-  facet_wrap(.~col,ncol=length(features.here),scales='free_y') +
-  my_theme() +
-  coord_cartesian(clip='off') +
-  scale_fill_manual(values=c(diagnosis_colors,class_colors)) +
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=.5),
-        legend.position='none') +
-  scale_x_discrete(breaks=c('cluster1','cluster2','cluster3','control','ATM','BRCA1'),
-                   labels=c('cluster1','cluster2','cluster3','control','ATM','BRCA1')) +
-  labs(x='',y='', color='diagnosis')
 ```
 
 # session info

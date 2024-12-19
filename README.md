@@ -11,11 +11,11 @@ contents:
 
     - `mouse`: config files for mouse data
 
-        - download raw fastq files from SRA into `raw_data` and run `demultiplex_dataset.sh` for all batches (20220425, 20221118, 20221212, 20230120, 20230213, 20240830); this will put fastq and `info.csv` files for individual samples into `input` and make it possible to run all samples in one go
+        - download raw fastq files from SRA into `raw_data` and run `demultiplex_dataset.sh`; this will put fastq and `info.csv` files for individual samples into `input` and make it possible to run all samples in one go
         - download mm10 genome from UCSC or elsewhere
         - download gencode M12 reference and use `swibrid prepare_annotation`
         - use `config.yaml` for running all mouse data
-        - use `config_noSg.yaml` for running everything only on Sm + Sa (potentially use only reads with Sa primer from the info files in `input`)
+        - use `config_noSg.yaml` for running everything only on Sm + Sa (potentially restrict info files in `input` to reads with Sa primer)
 
     - `human`: config files for human data
 
