@@ -1,7 +1,7 @@
 ---
 title: "paper figures"
 author: "Benedikt Obermayer"
-date: "2024/12/10"
+date: "2024/12/19"
 output: 
   html_document:
     toc: true
@@ -148,7 +148,8 @@ cat_cols <- c('structural'='#FD9E40',
               'library'='gray40')
 
 genotype_colors <- c('WT'='gray40','Xlf'='#e1c2f0','Shld1'='#b870dc','Shld1_Xlf'='#a447d2',
-                     'Trp53bp1 KO'='darksalmon','Brca1 KO'='darkkhaki','Rif1 KO'='skyblue1','Lig4 KO'='mediumpurple2') 
+                     'Trp53bp1 KO'='darksalmon','Brca1 KO'='darkkhaki','Rif1 KO'='skyblue1','Lig4 KO'='mediumpurple2', 
+                     'Trp53bp1'='darksalmon','Atm'='#A65628','Lig4'='mediumpurple2', 'Rif1'='skyblue1', 'Brca1'='darkkhaki')
 
 tissue_colors <- c('splenocytes'='orange2','lymph node'='orangered3','CH12'='forestgreen')
 var_colors <- c('batch'='palegreen2','diagnosis'='tan2','donor'='firebrick4','sequencing'='slategray1','unexplained'='gray80',
@@ -189,18 +190,6 @@ my_theme <- function() {
         axis.title = element_text(size=7))
 }
 ```
-
-<!-- # get data -->
-
-<!-- ```{r get_data} -->
-<!-- # data from Vincendeau for Fig. 2 -->
-<!-- # mouse tissue data for Figs. 2 + 3  -->
-<!-- # CH12 data for Fig. 3 -->
-<!-- # patient data for Fig. 4 -->
-<!-- FB.data <- read.csv('data/FB_data.csv',header=1, row.names=1) -->
-<!-- FB.data.pooled <- read.csv('data/FB_data_pooled.csv',header=1, row.names=1) -->
-<!-- QP.data <- read.csv('data/QP_data.csv',header=1, row.names=1) -->
-<!-- ``` -->
 
 # Figure 1 + supplements
 
@@ -466,7 +455,9 @@ HD.var %>%  dplyr::left_join(columns, by='col') %>%
   labs(x='', y='% explained variance', fill='', color='')
 ```
 
-```{r FigS3A,fig.width=3.5 * fig_scale,fig.height=1.7 * fig_scale}
+we now have `r length(selected.cols)` robust features
+
+```{r FigS2F,fig.width=3.5 * fig_scale,fig.height=1.7 * fig_scale}
 HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable, levels=c('donor','sex','age','batch','sequencing','Residuals'))) %>%
@@ -485,7 +476,7 @@ HD.var %>%
 
 confirm that downsampled diversity measures are better
 
-```{r FigS3D_1, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
+```{r FigS2J_1, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
 tmp <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(gsub('log10_nreads','# reads',variable),
@@ -515,7 +506,7 @@ ggplot(tmp,aes(x=variable, y=100*variance, fill=category)) +
 
 confirm that using isotype-specific context features doesn't help
 
-```{r FigS3D_2, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
+```{r FigS2J_2, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
 tmp <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(gsub('log10_nreads','# reads',variable),
@@ -545,7 +536,7 @@ ggplot(tmp, aes(x=variable, y=100*variance, fill=category)) +
 
 test the effects of averaging over clusters or reads
 
-```{r FigS3D_3, fig.width=1.4 * fig_scale,fig.height=1.7 * fig_scale}
+```{r FigS2J_3, fig.width=1.4 * fig_scale,fig.height=1.7 * fig_scale}
 HD.data.br <- read.csv('data/HD_data_by_reads.csv', header=1, row.names=1) 
 
 HD.scaled.br <- HD.data.br %>%
@@ -652,7 +643,7 @@ HD.data %>%
 
 HD feature correlation (on FB data)
 
-```{r FigS3B, fig.width=4.25 * fig_scale, fig.height=4.25 * fig_scale}
+```{r FigS2H, fig.width=4.25 * fig_scale, fig.height=4.25 * fig_scale}
 library(dendextend)
 FB.X <- HD.data %>%
   dplyr::filter(cohort=='C2') %>%
@@ -781,7 +772,7 @@ cohort.data %>%
 
 check length dependence of Vincendeau data
 
-```{r FigS3E, fig.width=1.5 * fig_scale, fig.height=1.75 * fig_scale}
+```{r FigS2K, fig.width=1.5 * fig_scale, fig.height=1.75 * fig_scale}
 cols.here.mouse <- c('mean_length_SG')
 cohort.data <- rbind(mouse.data %>%
                        dplyr::mutate(species='mouse tissue',
@@ -816,7 +807,7 @@ cohort.data %>%
 
 compare minION against pacBio in HD cohort for selected features
 
-```{r FigS3C, fig.width=2.75 * fig_scale, fig.height=5 * fig_scale}
+```{r FigS2G, fig.width=2.75 * fig_scale, fig.height=5 * fig_scale}
 tmp <- HD.scaled %>%
   dplyr::filter(feature %in% selected.cols, batch=='20230313') %>%
   dplyr::select(feature,value,sequencing,donor) %>%
@@ -834,11 +825,14 @@ cols_shapes <- tmp %>%
   dplyr::distinct(category, feature, feature_name) %>%
   dplyr::mutate(var_col=cat_cols[as.character(category)]) %>%
   dplyr::group_by(category) %>%
-  dplyr::mutate(var_ind=1:n())
+  dplyr::mutate(var_ind=1:n()) %>%
+  dplyr::mutate(feature=factor(feature, levels=levels(tmp$feature))) %>% 
+  dplyr::arrange(feature)
 
 ggplot(tmp,aes(x=minION,y=pacBio)) +
   geom_abline(slope=1,intercept=0,color='gray',linewidth=.5) +
   geom_point(aes(color=feature,shape=feature),size=1) + 
+  #geom_text_repel(aes(label=feature), size=1) +
   my_theme() +
   stat_cor(aes(label = ..r.label..), size=2.5) +
   labs(color='',shape='') +
@@ -921,7 +915,9 @@ cols_shapes <- tmp %>%
   dplyr::mutate(var_col=cat_cols[as.character(category)],
                 variable_name=gsub('_downsampled','',variable)) %>%
   dplyr::group_by(category) %>%
-  dplyr::mutate(var_ind=1:n())
+  dplyr::mutate(var_ind=1:n()) %>%
+  dplyr::mutate(variable=factor(variable, levels=levels(tmp$variable))) %>% 
+  dplyr::arrange(variable)
 
 comparisons <- list(c('WT','Xlf'),
                     c('WT','Shld1'),
@@ -969,6 +965,186 @@ plot_grid(plot_grid(plotlist=lapply(plots, function(x) x + theme(legend.position
 ```
 
 # Figure 3 + supplement (CH12)
+
+```{r FigS3A, fig.width=5.5 * fig_scale, fig.height=4.5 * fig_scale}
+HTGTS.data <- read.csv("data/HTGTS_data.csv", header=1, row.names=1) %>%
+  tibble::column_to_rownames('sample')
+
+HTGTS.cols <- intersect(colnames(HTGTS.data),selected.cols.mouse)
+
+tmp <- HTGTS.data %>%
+  gather(variable, value, HTGTS.cols) %>%
+  dplyr::group_by(variable, celltype) %>%
+  dplyr::mutate(value=scale(value)) %>%
+  dplyr::group_by(celltype, genotype, variable) %>%
+  dplyr::summarise(mean=mean(value),
+                   se=sd(value)/sqrt(n())) %>%
+  tidyr::pivot_wider(id_cols=c('variable'),names_from=c('celltype','genotype'),values_from=c('mean','se')) %>%
+  dplyr::left_join(columns,by=c('variable'='col')) %>%
+  dplyr::group_by(variable) %>%
+  dplyr::mutate(variable=factor(variable, levels=columns %>% 
+                                  dplyr::filter(col %in% HTGTS.cols) %>% 
+                                  dplyr::pull(col)),
+                var_col=cat_cols[category]) %>%
+  dplyr::arrange(variable)
+
+cols_shapes <- tmp %>% 
+  dplyr::distinct(category, variable) %>%
+  dplyr::mutate(var_col=cat_cols[as.character(category)],
+                variable_name=gsub('_downsampled','',variable)) %>%
+  dplyr::group_by(category) %>%
+  dplyr::mutate(var_ind=1:n()) %>%
+  dplyr::mutate(variable=factor(variable, levels=levels(tmp$variable))) %>% 
+  dplyr::arrange(variable)
+
+comparisons <- list(c('CH12','WT','Atm'),
+                    c('CH12','WT','Trp53bp1'),
+                    c('CH12','WT','Lig4'),
+                    c('spleen','WT','Atm'),
+                    c('spleen','WT','Trp53bp1'))
+
+plots <- lapply(comparisons, function(x) 
+  tmp %>%
+    dplyr::mutate_(mean1=paste0('mean_',x[[1]],'_',x[[2]]),
+                   mean2=paste0('mean_',x[[1]],'_',x[[3]]),
+                   se1=paste0('se_',x[[1]],'_',x[[2]]),
+                   se2=paste0('se_',x[[1]],'_',x[[3]])) %>%
+    dplyr::mutate(tstat=abs(mean2-mean1)/(sqrt(se2**2+se1**2)),
+                  pval=dt(tstat,4)) %>%
+    ggplot(aes(x=mean1,y=mean2)) +
+    geom_abline(slope=1,intercept=0,color='gray',linewidth=.5) +
+    geom_point(aes(color=variable,shape=variable,size=ifelse(pval < .05,'sig','ns'))) + 
+    stat_cor(method = "pearson", aes(label=..r.label..), size=2.5, show.legend=FALSE, label.y.npc = 'bottom') +
+    geom_errorbar(aes(ymin=mean2-se2,
+                      ymax=mean2+se2,
+                      color=variable),
+                  size=.25) +
+    geom_errorbarh(aes(xmin=mean1-se1,
+                       xmax=mean1+se1,
+                       color=variable),
+                   size=.25) +
+    my_theme() +
+    labs(color='',shape='') +
+    scale_color_manual(values=cols_shapes %>% 
+                         dplyr::pull(var_col,variable),
+                       labels=cols_shapes %>%
+                         dplyr::pull(variable_name)) +
+    scale_shape_manual(values=cols_shapes %>%
+                         dplyr::pull(var_ind,variable),
+                       labels=cols_shapes %>%
+                         dplyr::pull(variable_name)) +
+    scale_size_manual(values=c('sig'=2,'ns'=.5),guide='none') +
+    guides(color=guide_legend(ncol=4),
+           shape=guide_legend(ncol=4)) +
+    labs(x=x[[2]],y=x[[3]],title=x[[1]],fill='',color='',size=''))
+
+plot_grid(plot_grid(plotlist=lapply(plots, function(x) x + theme(legend.position='none')), 
+                    ncol=3, align='vh'),
+          get_legend(plots[[1]] + theme(legend.margin=margin(0,0,0,0,'mm'))), ncol=1, rel_heights=c(.65,.35))
+```
+
+```{r FigS3C, fig.width=3.75 * fig_scale, fig.height=2.5 * fig_scale}
+library(gtools)
+
+cols.here.HTGTS <- c('n_homology_switch',
+                     'frac_breaks_inversions',
+                     'cluster_entropy',
+                     'mean_cluster_size',
+                     'acceptor_score_W',
+                     'donor_score_W')
+
+HTGTS.data %>%
+  dplyr::mutate(celltype=factor(celltype, levels=c('CH12','spleen')),
+                genotype=factor(genotype, levels=c('WT','Atm','Lig4','Trp53bp1'))) %>%
+  gather(variable, value, cols.here.HTGTS) %>%
+  dplyr::select(variable, value, genotype, celltype) %>%
+  dplyr::left_join(columns, by=c('variable'='col')) %>%
+  dplyr::mutate(variable=factor(gsub('_downsampled|_switch','',variable), 
+                                levels=gsub('_downsampled|_switch','',cols.here.HTGTS))) %>%
+  dplyr::filter(category %in% c('diversity','isotypes','breaks','context','structural')) %>%
+  ggplot(aes(x=genotype, y=value, fill=genotype)) + 
+  geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) + 
+  geom_point(position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) + 
+  my_theme() +
+  coord_cartesian(clip='off') +
+  stat_compare_means(ref.group='WT',method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2) +
+  ggh4x::facet_grid2(celltype~variable, switch='y', scales='free_y', independent='y', strip=ggh4x::strip_vanilla(clip='off')) +
+  theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+        legend.position='none') +
+  scale_fill_manual(values=genotype_colors) +
+  #scale_x_discrete(breaks=c('lymph node','splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
+  #                 limits=c('lymph node','splenocytes','','WT','Xlf','Shld1','Shld1_Xlf'), drop=FALSE) +
+  labs(x='',y='', fill='') 
+```
+
+show homology values for HTGTS data
+
+```{r FigS3D, fig.width=3.25 * fig_scale, fig.height=1.25 * fig_scale}
+read.csv('data/HTGTS_homology.csv',header=1, row.names=1) %>%
+  dplyr::mutate(genotype=factor(genotype, levels=c('WT','Atm','Lig4','Trp53bp1'))) %>%
+  dplyr::filter(xor(isotype=='Sa', celltype=='spleen')) %>%
+  dplyr::group_by( celltype, genotype, isotype, n_homology) %>%
+  dplyr::summarise(mean_frac=mean(frac),
+                   se_frac=sd(frac)/sqrt(n())) %>%
+  ggplot(aes(x=n_homology, y=mean_frac, color=genotype)) +
+  geom_line(aes(group=genotype)) +
+  geom_errorbar(aes(ymin=mean_frac-se_frac,ymax=mean_frac+se_frac),width=0) +
+  ggh4x::facet_nested(. ~ celltype  + isotype , scales='free', space='free_x', nest_line = TRUE, switch='y') +
+  my_theme() +
+  scale_color_manual(values=genotype_colors) +
+  labs(color='', y='fraction junctions') +
+  coord_cartesian(clip='off') 
+```
+
+```{r FigS3B, fig.width=2.5 * fig_scale, fig.height=3. * fig_scale}
+HTGTS.CH12.X <- HTGTS.data[HTGTS.data$celltype=='CH12',HTGTS.cols] %>%
+  dplyr::mutate_if(is.numeric, scale) 
+HTGTS.spleen.X <- HTGTS.data[HTGTS.data$celltype=='spleen',HTGTS.cols] %>%
+  dplyr::mutate_if(is.numeric, scale) 
+
+HTGTS.meta <- HTGTS.data %>%
+  dplyr::mutate(genotype=factor(genotype,levels=c('WT','Atm','Lig4','Trp53bp1'))) %>%
+  dplyr::select(celltype,genotype)
+
+pca.CH12 <- prcomp(HTGTS.CH12.X)
+pcadat.CH12 <- cbind(pca.CH12$x,HTGTS.meta[row.names(HTGTS.CH12.X),])
+pca.spleen <- prcomp(HTGTS.spleen.X)
+pcadat.spleen <- cbind(pca.spleen$x,HTGTS.meta[row.names(HTGTS.spleen.X),])
+
+p1 <- ggplot(pcadat.CH12,aes(x=PC1,y=PC2, color=genotype)) +
+  geom_point(size=1) +
+  geom_polygon(data = pcadat.CH12 %>%
+                 dplyr::group_by(genotype) %>%
+                 dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=genotype)) +
+  my_theme() +
+  theme(aspect.ratio=pca.CH12$sdev[2]**2/pca.CH12$sdev[1]**2,
+        legend.position=c(.92,.3),
+        legend.background = element_blank()) +
+  labs(x=paste0('PC 1 (',100*signif(pca.CH12$sdev[1]**2/sum(pca.CH12$sdev**2),3),'%)'),
+       y=paste0('PC 2 (',100*signif(pca.CH12$sdev[2]**2/sum(pca.CH12$sdev**2),3),'%)'),
+       color='',shape='',fill='', title='CH12')  +
+  scale_color_manual(values=genotype_colors) +
+  scale_fill_manual(values=genotype_colors)
+
+p2 <- ggplot(pcadat.spleen,aes(x=PC1,y=PC2, color=genotype)) +
+  geom_point(size=1) +
+  geom_polygon(data = pcadat.spleen %>%
+                 dplyr::group_by(genotype) %>%
+                 dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=genotype)) +
+  my_theme() +
+  theme(aspect.ratio=pca.spleen$sdev[2]**2/pca.spleen$sdev[1]**2,
+        legend.position='none',
+        legend.background = element_blank()) +
+  labs(x=paste0('PC 1 (',100*signif(pca.spleen$sdev[1]**2/sum(pca.spleen$sdev**2),3),'%)'),
+       y=paste0('PC 2 (',100*signif(pca.spleen$sdev[2]**2/sum(pca.spleen$sdev**2),3),'%)'),
+       color='',shape='',fill='', title='spleen')  +
+  scale_color_manual(values=genotype_colors) +
+  scale_fill_manual(values=genotype_colors)
+
+plot_grid(p1,p2, ncol=1, align='vh')
+```
+
+these PCAs use `r dim(HTGTS.spleen.X)[2]` (spleen) and `r dim(HTGTS.CH12.X)[2]` (CH12) features
 
 show a PCA of spleen and lymph node data together with PP and CH12 using all switch regions or only Sm+Sa
 
@@ -1078,6 +1254,89 @@ plot_grid(p1 + theme(legend.position='none'),
 
 (this PCA uses `r dim(mouse.X)[2]` and `r dim(mouse.X.noSg)[2]` features)
 
+```{r FigS3X1, fig.width=4 * fig_scale, fig.height=1.75 * fig_scale, include=FALSE, eval=FALSE}
+dualPCA <- function(X, Y) {
+  library(irlba)
+  # use CCA-like extension of dual PCA as described here: https://xinmingtu.cn/blog/2022/CCA_dual_PCA/
+  #sv <- irlba(as.matrix(X) %*% as.matrix(t(Y)), nv=n)
+  sv <- svd(as.matrix(X) %*% as.matrix(t(Y)))
+  x <- sv$u %*% diag(sqrt(sv$d))
+  row.names(x) <- row.names(X)
+  colnames(x) <- paste0('dPC',seq(1,dim(x)[2]))
+  y <- sv$v %*% diag(sqrt(sv$d))
+  row.names(y) <- row.names(Y)
+  colnames(y) <- paste0('dPC',seq(1,dim(y)[2]))
+  list(x=x, y=y, sdev=sqrt(sv$d/(dim(X)[2]-1)))
+}
+
+CH12.X <- CH12.data[CH12.take, mouse.cols] %>% 
+  dplyr::mutate_if(is.numeric, scale)
+mouse.X <- mouse.data[mouse.take, mouse.cols] %>% 
+  dplyr::mutate_if(is.numeric, scale)
+
+dpca <- dualPCA(CH12.X, mouse.X)
+dpcadat <- cbind(rbind(dpca$x, dpca$y),
+                 data.frame(group=c(CH12.data[row.names(dpca$x),'genotype'],
+                                    mouse.data$material)))
+
+ggplot(dpcadat,aes(x=dPC1,y=dPC2, color=group)) +
+  geom_point(size=1) +
+  geom_polygon(data = dpcadat %>%
+                 dplyr::group_by(group) %>%
+                 dplyr::slice(chull(dPC1, dPC2)), alpha = 0.1, aes(fill=group), linewidth=.1) +
+  my_theme() +
+  scale_fill_manual(values=c(genotype_colors,tissue_colors)) +
+  scale_color_manual(values=c(genotype_colors,tissue_colors)) +
+  theme(aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2,
+        legend.spacing=unit(0,'mm')) +
+  labs(x=paste0('dPC 1 (',100*signif(dpca$sdev[1]**2/sum(dpca$sdev**2),3),'%)'),
+       y=paste0('dPC 2 (',100*signif(dpca$sdev[2]**2/sum(dpca$sdev**2),3),'%)'),
+       color='',shape='',fill='')
+```
+
+
+```{r FigS3X2, fig.width=3 * fig_scale, fig.height=4 * fig_scale, include=FALSE, eval=FALSE}
+tmp <- t(t(t(as.matrix(rbind(CH12.X, mouse.X))) %*% as.matrix(dpcadat[,c('dPC1','dPC2')])) / colSums(dpcadat[,c('dPC1','dPC2')]**2)) %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column('col') %>%
+  dplyr::left_join(columns, by='col') %>%
+  dplyr::mutate(col=factor(col, levels=columns %>% 
+                             dplyr::filter(col %in% mouse.cols) %>%
+                             dplyr::pull(col)),
+                col_name=gsub("_downsampled|_switch",'',col))
+
+cols_shapes <- tmp %>% 
+  dplyr::distinct(category, col,col_name) %>%
+  dplyr::mutate(var_col=cat_cols[as.character(category)]) %>%
+  dplyr::group_by(category) %>%
+  dplyr::mutate(var_ind=1:n()) %>%
+  dplyr::mutate(col=factor(col, levels=levels(tmp$col))) %>% 
+  dplyr::arrange(col)
+
+ggplot(tmp,aes(x=dPC1,y=dPC2, color=col, shape=col)) +
+  geom_point(size=1) +
+  #geom_text_repel(aes(label=col), size=1) +
+  my_theme() +
+  scale_color_manual(values=cols_shapes %>%
+                       dplyr::pull(var_col,col),
+                     labels=cols_shapes %>%
+                       dplyr::pull(col_name)) +
+  scale_shape_manual(values=cols_shapes %>%
+                       dplyr::pull(var_ind,col),
+                     labels=cols_shapes %>%
+                       dplyr::pull(col_name)) +
+  theme(legend.key.size=unit(1.5,'mm'),
+        aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2,
+        legend.spacing=unit(0,'mm'),
+        legend.key.spacing.y=unit(0,'mm'),
+        legend.position='bottom',
+        legend.box='horizontal') +
+  guides(color=guide_legend(ncol=2),
+         shape=guide_legend(ncol=2)) +
+  labs(x='dPC 1', y='dPC 2',
+       color='',shape='',fill='',alpha='')
+```
+
 selected features in the CH12 data (2023 batches)
 
 ```{r Fig3D,fig.width=3.5 * fig_scale,fig.height=2.5 * fig_scale}
@@ -1147,28 +1406,6 @@ ggplot(pcadat,aes(x=PC1,y=PC2, color=genotype)) +
        color='',shape='',fill='') +
   scale_fill_manual(values=genotype_colors) +
   scale_color_manual(values=genotype_colors) 
-
-# ggplot(pcadat,aes(x=PC3,y=PC4, color=genotype)) +
-#   geom_point(size=2) +
-#   geom_polygon(data = pcadat %>%
-#                  dplyr::group_by(genotype) %>%
-#                  dplyr::slice(chull(PC3, PC4)), alpha = 0.25, aes(fill=genotype)) +
-#   my_theme() +
-#   theme(aspect.ratio=pca$sdev[4]**2/pca$sdev[3]**2) +
-#   labs(x=paste0('PC 3 (',100*signif(pca$sdev[3]**2/sum(pca$sdev**2),3),'%)'),
-#        y=paste0('PC 4 (',100*signif(pca$sdev[4]**2/sum(pca$sdev**2),3),'%)'),
-#        color='',shape='',fill='') +
-#   scale_fill_manual(values=genotype_colors) +
-#   scale_color_manual(values=genotype_colors)
-# 
-# ggplot(pcadat,aes(x=PC1,y=PC2, color=batch)) +
-#   geom_point(size=2) +
-#   my_theme() +
-#   theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2) +
-#   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
-#        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
-#        color='',shape='')
-
 ```
 
 (this PCA uses `r dim(CH12.X)[2]` features)
@@ -1324,7 +1561,7 @@ tmp %>%
 
 evaluate ridge regression by cross-validation
 
-```{r FigS3G, fig.width=1. * fig_scale, fig.height=1.75 * fig_scale}
+```{r FigS3X5, fig.width=1. * fig_scale, fig.height=1.75 * fig_scale, include=FALSE}
 batch.CV <- c()
 for (batch in unique(CH12.meta$batch)) {
   train <- CH12.meta$batch != batch
@@ -1378,6 +1615,8 @@ data.frame(acc=c(unlist(batch.CV),unlist(sample.CV)),
   theme(axis.text.x=element_text(angle=90, hjust=1, vjust=.5)) +
   labs(x='',y='accuracy')
 ```
+
+(average accuracy is `r mean(unlist(batch.CV))` for cross-validation across batches and `r mean(unlist(sample.CV))` for cross-validation across samples)
 
 
 # Figure 4 + supplement (FB data)
@@ -1496,6 +1735,8 @@ ggplot(pcadat,aes(x=PC1,y=PC2)) +
                   ylim=c(-5,8),
                   clip='off') +
   theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
+        legend.key.size=unit(1.5,'mm'),
+        legend.key.spacing.y=unit(0,'mm'),
         legend.position='bottom',
         legend.box='horizontal') +
   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
@@ -1503,9 +1744,11 @@ ggplot(pcadat,aes(x=PC1,y=PC2)) +
        color='',shape='',fill='')
 ```
 
+(this PCA uses `r dim(human.X)[2]` features)
+
 another PCA with only subclass features
 
-```{r FigS4X1, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
+```{r FigS4C, fig.width=2.75 * fig_scale, fig.height=1.75 * fig_scale}
 FB.cols.subclass <- grep('frac_clusters_S[MGA]+',colnames(FB.data.pooled),value=TRUE)
 FB.X.subclass <- FB.data.pooled[FB.data.pooled$sample_donor %in% FB_train_donors,FB.cols.subclass] %>%
   dplyr::mutate_if(is.numeric,scale) 
@@ -1526,13 +1769,14 @@ ggplot(pcadat.subclass,aes(x=PC1,y=PC2)) +
   #                 aes(label=gsub('FB_','',donor)),size=2, segment.size=.25, label.padding = unit(.5,'mm'), force=20, show.legend=FALSE) +
   scale_fill_manual(values=diagnosis_colors, guide='none') +
   scale_color_manual(values=diagnosis_colors) +
-  guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=3)) +
-  theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
-        legend.position='bottom',
+  guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=1)) +
+  theme(aspect.ratio=pca.subclass$sdev[2]**2/pca.subclass$sdev[1]**2,
+        legend.position='right',
+        legend.key.size=unit(1.5,'mm'),
         legend.key.spacing.y=unit(0,'mm'),
         legend.box='horizontal') +
-  labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
-       y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
+  labs(x=paste0('PC 1 (',100*signif(pca.subclass$sdev[1]**2/sum(pca.subclass$sdev**2),3),'%)'),
+       y=paste0('PC 2 (',100*signif(pca.subclass$sdev[2]**2/sum(pca.subclass$sdev**2),3),'%)'),
        color='',shape='',fill='')
 ```
 
@@ -1540,7 +1784,7 @@ ggplot(pcadat.subclass,aes(x=PC1,y=PC2)) +
 
 show subclass features for HD and subclass-deficient people
 
-```{r FigS4G, fig.width=2 * fig_scale, fig.height=1.7 * fig_scale}
+```{r FigS4B, fig.width=2 * fig_scale, fig.height=1.7 * fig_scale}
 subclass.cols <- c("frac_clusters_SA1","frac_clusters_SA2",
                    "frac_clusters_SG1","frac_clusters_SG2","frac_clusters_SG3","frac_clusters_SG4")
 
@@ -1573,7 +1817,7 @@ ggplot(tmp, aes(x=feature, y=frac_clusters)) +
 
 correlate FACS against SWIBRID
 
-```{r FigS4X2, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
+```{r FigS4H, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
 tmp <- FB.data.pooled %>%
   dplyr::mutate(alpha_ratio_FACS=pct_IgA/(pct_IgA + pct_IgG)) %>%
   dplyr::group_by(status) %>%
@@ -1627,7 +1871,7 @@ ggplot(tmp, aes(x=diagnosis_simple,y=value,fill=diagnosis_simple)) +
   labs(x='',y='', color='# reads')
 ```
 
-project new data into the old PCA
+project test data into the training data PCA
 
 ```{r Fig4E, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
 pcadat.combined <- rbind(cbind(as.matrix(human.X[train,]) %*% pca$rotation, human.meta[train,]),
@@ -1649,8 +1893,11 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='validation'),
   scale_color_manual(values=diagnosis_colors) +
   scale_alpha_manual(values=c('testing'=1,'training'=.25)) +
   scale_shape_manual(values=c('testing'=15,'training'=16)) +
-  guides(color=guide_legend(override.aes = list(shape=15,size=2),ncol=3)) +
-  theme(legend.key.height=unit(2,'mm'),
+  guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=3),
+         shape=guide_legend(ncol=1),
+         alpha=guide_legend(ncol=1)) +
+  theme(legend.key.height=unit(1.5,'mm'),
+        legend.key.spacing=unit(0,'mm'),
         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
         legend.position='bottom',
         legend.box='horizontal') +
@@ -1662,7 +1909,9 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='validation'),
        color='',shape='',fill='',alpha='')
 ```
 
-```{r Fig4G, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
+project validation data into training PCA
+
+```{r Fig4F, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
 ggplot(pcadat.combined %>% dplyr::filter(dataset!='testing'),
        aes(x=PC1,y=PC2)) +
   geom_polygon(data = pcadat.combined %>% dplyr::filter(dataset=='training') %>%
@@ -1677,8 +1926,11 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='testing'),
   scale_color_manual(values=diagnosis_colors) +
   scale_alpha_manual(values=c('training'=.25,'validation'=1)) +
   scale_shape_manual(values=c('training'=16,'validation'=15)) +
-  guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=3)) +
-  theme(legend.key.height=unit(2,'mm'),
+  guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=3),
+         shape=guide_legend(ncol=1),
+         alpha=guide_legend(ncol=1)) +
+  theme(legend.key.height=unit(1.5,'mm'),
+        legend.key.spacing=unit(0,'mm'),
         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
         legend.position='bottom',
         legend.box='horizontal') +
@@ -1707,8 +1959,8 @@ ROC_2 <- roc(human.meta[validation,'status']!='control', pred_2)
 FB_res <- data.frame(specificity=c(ROC_1$specificities,ROC_2$specificities),
                      sensitivity=c(ROC_1$sensitivities,ROC_2$sensitivities),
                      thresholds=c(ROC_1$thresholds,ROC_2$thresholds),
-                     model=c(rep(paste0('training -> testing; AUC=',signif(auc(ROC_1),3)),length(ROC_1$specificities)),
-                             rep(paste0('training -> validation; AUC=',signif(auc(ROC_2),3)),length(ROC_2$specificities)))) %>%
+                     model=c(rep(paste0('training -> testing; AUC=',signif(ROC_1$auc,3)),length(ROC_1$specificities)),
+                             rep(paste0('training -> validation; AUC=',signif(ROC_2$auc,3)),length(ROC_2$specificities)))) %>%
   dplyr::mutate(model=factor(model, levels=unique(model))) %>%
   dplyr::arrange(model,sensitivity) 
 
@@ -1725,7 +1977,7 @@ ggplot(FB_res, aes(x=specificity,y=sensitivity,color=model)) +
 
 evaluate ridge regression by cross-validation
 
-```{r FigS4X3, fig.width=.8 * fig_scale, fig.height=1 * fig_scale}
+```{r FigS4X1, fig.width=.8 * fig_scale, fig.height=1 * fig_scale, include=FALSE}
 set.seed(4)
 sample.CV <- c()
 FB.samples <- row.names(FB.data.pooled)[FB.data.pooled$diagnosis != 'subclass']
@@ -1763,9 +2015,11 @@ data.frame(acc=unlist(sample.CV),
   labs(x='',y='accuracy')
 ```
 
+(average accuracy is `r mean(unlist(sample.CV))`)
+
 heatmap
 
-```{r Fig4F, fig.width=5.5 * fig_scale, fig.height=5.5 * fig_scale}
+```{r Fig4G, fig.width=5.5 * fig_scale, fig.height=5.5 * fig_scale}
 FB.samples <- row.names(FB.data.pooled)[grepl('FB',FB.data.pooled$donor)]
 FB.X <- FB.data.pooled[FB.samples, selected.cols] %>%
   dplyr::mutate_if(is.numeric, scale)
@@ -1872,8 +2126,8 @@ hm1 %v% hm3
 
 show PCA loadings per category
 
-```{r FigS4C, fig.width=3 * fig_scale, fig.height=4 * fig_scale}
-tmp <- data.frame(abs(pca$rotation)) %>%
+```{r FigS4D, fig.width=3 * fig_scale, fig.height=4 * fig_scale}
+tmp <- data.frame(pca$rotation) %>%
   tibble::rownames_to_column('col') %>%
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(col=factor(col, levels=columns %>% 
@@ -1885,11 +2139,13 @@ cols_shapes <- tmp %>%
   dplyr::distinct(category, col,col_name) %>%
   dplyr::mutate(var_col=cat_cols[as.character(category)]) %>%
   dplyr::group_by(category) %>%
-  dplyr::mutate(var_ind=1:n())
+  dplyr::mutate(var_ind=1:n()) %>%
+  dplyr::mutate(col=factor(col, levels=levels(tmp$col))) %>% 
+  dplyr::arrange(col)
 
-
-ggplot(tmp,aes(x=PC1,y=PC2, color=col, shape=col)) +
+ggplot(tmp,aes(x=abs(PC1),y=abs(PC2), color=col, shape=col)) +
   geom_point(size=1) +
+  #geom_text_repel(aes(label=col), size=1) +
   my_theme() +
   scale_color_manual(values=cols_shapes %>%
                        dplyr::pull(var_col,col),
@@ -1899,7 +2155,7 @@ ggplot(tmp,aes(x=PC1,y=PC2, color=col, shape=col)) +
                        dplyr::pull(var_ind,col),
                      labels=cols_shapes %>%
                        dplyr::pull(col_name)) +
-  theme(legend.key.height=unit(3,'mm'),
+  theme(legend.key.size=unit(1.5,'mm'),
         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
         legend.spacing=unit(0,'mm'),
         legend.key.spacing.y=unit(0,'mm'),
@@ -1909,11 +2165,34 @@ ggplot(tmp,aes(x=PC1,y=PC2, color=col, shape=col)) +
          shape=guide_legend(ncol=2)) +
   labs(x='abs. PC 1', y='abs. PC 2',
        color='',shape='',fill='',alpha='')
+
+# ggplot(tmp,aes(x=PC1,y=PC2, color=col, shape=col)) +
+#   geom_point(size=1) +
+#   #geom_text_repel(aes(label=col), size=1) +
+#   my_theme() +
+#   scale_color_manual(values=cols_shapes %>%
+#                        dplyr::pull(var_col,col),
+#                      labels=cols_shapes %>%
+#                        dplyr::pull(col_name)) +
+#   scale_shape_manual(values=cols_shapes %>%
+#                        dplyr::pull(var_ind,col),
+#                      labels=cols_shapes %>%
+#                        dplyr::pull(col_name)) +
+#   theme(legend.key.size=unit(1.5,'mm'),
+#         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2,
+#         legend.spacing=unit(0,'mm'),
+#         legend.key.spacing.y=unit(0,'mm'),
+#         legend.position='bottom',
+#         legend.box='horizontal') +
+#   guides(color=guide_legend(ncol=2),
+#          shape=guide_legend(ncol=2)) +
+#   labs(x='PC 1', y='PC 2',
+#        color='',shape='',fill='',alpha='')
 ```
 
 categorize the samples
 
-```{r FigS4D, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
+```{r FigS4G, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
 ggplot(pca_hm %>% tibble::rownames_to_column('name') %>%
          dplyr::filter(dataset!='validation') %>%
          dplyr::left_join(class_df, by='name'), 
@@ -1928,38 +2207,13 @@ ggplot(pca_hm %>% tibble::rownames_to_column('name') %>%
                      breaks=c(names(class_colors),
                               names(diagnosis_colors))) +
   guides(color=guide_legend(override.aes = list(shape=c(rep(16,3),rep(15,7)),size=2), ncol=4)) +
-  theme(legend.key.height=unit(3,'mm'),
+  theme(legend.key.size=unit(1.5,'mm'),
         legend.position='bottom',
         legend.key.spacing.y=unit(0,'mm'),
         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2) +
   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
        color='')
-```
-
-what drives clustering within clusters 1 + 2?
-
-```{r cluster_drivers, fig.width=3 * fig_scale, fig.height=3 * fig_scale}
-use <- class_df$class!='cluster3'
-cluster.var <- fitExtractVarPartModel(t(FB.X[use,]), ~ (1 | class), data=class_df[use,'class',drop=FALSE]) %>%
-  as.data.frame() %>%
-  tibble::rownames_to_column('col') %>%
-  gather(variable,variance,-col)
-
-cluster.var %>%
-  dplyr::filter(variable=='class') %>%
-  dplyr::left_join(columns %>% dplyr::mutate(col=gsub('_downsampled|_switch','',col)) %>% 
-                     dplyr::filter(category %in% c('context','breaks','isotypes','diversity','structural')), 
-                   by='col') %>%
-  dplyr::arrange(variance) %>%
-  dplyr::mutate(col=factor(col, levels=col)) %>%
-  ggplot(aes(y=variance, x=col, fill=category)) + 
-  geom_col() +
-  my_theme() +
-  coord_flip() +
-  scale_fill_manual(values=cat_cols) +
-  labs(x='',y='explained variance between cluster1+2 by class') +
-  theme(legend.position=c(.9,.1))
 ```
 
 box plots for selected features
@@ -1996,8 +2250,9 @@ ggplot(tmp, aes(x=group,y=value,fill=group)) +
   geom_jitter(width=.1,height=0,size=.5) +
   stat_compare_means(comparisons=list(c('cluster1','cluster3'),
                                       c('cluster1','cluster2'),
-                                      c('cluster2','cluster3'),
-                                      c('control','ATM'),
+                                      c('cluster2','cluster3')),
+                     method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) +
+  stat_compare_means(comparisons=list(c('control','ATM'),
                                       c('control','BRCA1')),
                      method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) +
   facet_wrap(.~col,ncol=length(features.here),scales='free_y') +
@@ -2013,7 +2268,7 @@ ggplot(tmp, aes(x=group,y=value,fill=group)) +
 
 check association of clinics with features
 
-```{r FigS4X4, fig.width=3 * fig_scale, fig.height=2.5 * fig_scale}
+```{r FigS4E, fig.width=3 * fig_scale, fig.height=2.5 * fig_scale}
 pvals <- list()
 for (x in c("Tetanus",
             "Diphteria",
@@ -2022,21 +2277,6 @@ for (x in c("Tetanus",
     data <- FB.data.pooled[FB.samples,c(x,f)] %>%
       tidyr::drop_na()
     form <- as.formula(paste0(x,'=="negative" ~ ',f))
-    res <- glm(form, family='binomial', data=data) %>% summary()
-    pvals[[paste0(x,'_',f)]] <- data.frame(pval=coef(res)[2,4],
-                                           vacc=x,
-                                           col=f)
-  }
-}
-
-for (x in c("splenomegaly",
-            "lymphoproliferation",
-            "lung")) {
-  for (f in selected.cols) {
-    data <- FB.data.pooled[FB.samples,c(x,f,'status')] %>%
-      dplyr::filter(status!='control') %>%
-      tidyr::drop_na()
-    form <- as.formula(paste0(x,'!="" ~ ',f))
     res <- glm(form, family='binomial', data=data) %>% summary()
     pvals[[paste0(x,'_',f)]] <- data.frame(pval=coef(res)[2,4],
                                            vacc=x,
@@ -2068,32 +2308,47 @@ FB.data.pooled[FB.samples, ] %>%
         strip.clip='off',
         axis.text.x=element_text(angle=45, hjust=1, vjust=1))
 
-FB.data.pooled[FB.samples, ] %>%
-  gather(feature, value, c('frac_clusters_SG3','alpha_ratio_clusters')) %>%
-  gather(disease, disease_status, c('splenomegaly','lymphoproliferation','lung')) %>%
-  dplyr::mutate(disease_status=factor(ifelse(status=='control','control',
-                                             ifelse(disease_status=='','absent','present')),
-                                      levels=c('control','absent','present'))) %>%
-  ggplot(aes(x=disease_status, y=value, fill=disease_status)) +
-  geom_boxplot(outlier.shape=NA) +
-  geom_jitter(aes(color=status),width=.1, size=.5) +
-  stat_compare_means(comparisons=list(c('absent','present'),
-                                      c('absent','control')),
-                     method='wilcox.test', label = "p.signif", hide.ns=TRUE, size=2, vjust=0) +
-  facet_grid(feature ~ disease, switch='y', scales='free_y') + 
-  my_theme() +
-  scale_fill_manual(values=c('present'='red3','absent'='gray')) +
-  scale_color_manual(values=diagnosis_colors) +
-  labs(x='',y='') +
-  coord_cartesian(clip='off') +
-  theme(legend.position='none',
-        strip.clip='off',
-        axis.text.x=element_text(angle=45, hjust=1, vjust=1))
+# for (x in c("splenomegaly",
+#             "lymphoproliferation",
+#             "lung")) {
+#   for (f in selected.cols) {
+#     data <- FB.data.pooled[FB.samples,c(x,f,'status')] %>%
+#       dplyr::filter(status!='control') %>%
+#       tidyr::drop_na()
+#     form <- as.formula(paste0(x,'!="" ~ ',f))
+#     res <- glm(form, family='binomial', data=data) %>% summary()
+#     pvals[[paste0(x,'_',f)]] <- data.frame(pval=coef(res)[2,4],
+#                                            vacc=x,
+#                                            col=f)
+#   }
+# }
+
+# FB.data.pooled[FB.samples, ] %>%
+#   gather(feature, value, c('frac_clusters_SG3','alpha_ratio_clusters')) %>%
+#   gather(disease, disease_status, c('splenomegaly','lymphoproliferation','lung')) %>%
+#   dplyr::mutate(disease_status=factor(ifelse(status=='control','control',
+#                                              ifelse(disease_status=='','absent','present')),
+#                                       levels=c('control','absent','present'))) %>%
+#   ggplot(aes(x=disease_status, y=value, fill=disease_status)) +
+#   geom_boxplot(outlier.shape=NA) +
+#   geom_jitter(aes(color=status),width=.1, size=.5) +
+#   stat_compare_means(comparisons=list(c('absent','present'),
+#                                       c('absent','control')),
+#                      method='wilcox.test', label = "p.signif", hide.ns=TRUE, size=2, vjust=0) +
+#   facet_grid(feature ~ disease, switch='y', scales='free_y') + 
+#   my_theme() +
+#   scale_fill_manual(values=c('present'='red3','absent'='gray')) +
+#   scale_color_manual(values=diagnosis_colors) +
+#   labs(x='',y='') +
+#   coord_cartesian(clip='off') +
+#   theme(legend.position='none',
+#         strip.clip='off',
+#         axis.text.x=element_text(angle=45, hjust=1, vjust=1))
 ```
 
 check aggregated scores
 
-```{r FigS4X5, fig.width=5.5 * fig_scale, fig.height=3.5 * fig_scale}
+```{r FigS4F, fig.width=5.5 * fig_scale, fig.height=3.5 * fig_scale}
 FB.X.aggregated <-  FB.data.pooled[FB.samples, selected.cols] %>%
   dplyr::mutate_if(is.numeric, scale) %>%
   tibble::rownames_to_column('sample') %>%
@@ -2168,6 +2423,391 @@ hm2 <- Heatmap(t(FB.X.aggregated[samples,]),
 hm2
 ```
 
+<!-- ```{r FigS4X2, fig.width=4 * fig_scale, fig.height=1.75 * fig_scale, include=FALSE, eval=FALSE} -->
+<!-- all.cols <- intersect(colnames(CH12.X), colnames(human.X)) -->
+<!-- dpca <- dualPCA(CH12.X[,all.cols], human.X[,all.cols]) -->
+
+<!-- dpcadat <- cbind(rbind(dpca$x,dpca$y), -->
+<!--                 data.frame(species=c(rep('mouse',dim(dpca$x)[1]), -->
+<!--                                      rep('human',dim(dpca$y)[1])), -->
+<!--                            genotype=c(CH12.meta[,'genotype'], -->
+<!--                                       human.meta[,'diagnosis']))) -->
+
+<!-- ggplot(dpcadat,aes(x=dPC1,y=dPC2, color=genotype)) + -->
+<!--   geom_point(aes(shape=species),size=.5) + -->
+<!--   geom_polygon(data = dpcadat %>% -->
+<!--                  dplyr::group_by(genotype) %>% -->
+<!--                  dplyr::slice(chull(dPC1, dPC2)), alpha = 0.1, aes(fill=genotype), linewidth=.1) + -->
+<!--   my_theme() + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,genotype_colors)) + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,genotype_colors)) + -->
+<!--   scale_shape_manual(values=c('human'=15,'mouse'=16)) + -->
+<!--   guides(fill=guide_legend(ncol=2, override.aes = list(pch=c(rep(16,5),rep(15,14)))), -->
+<!--          color=guide_legend(ncol=2, override.aes = list(pch=c(rep(16,5),rep(15,14)))), -->
+<!--          shape='none') + -->
+<!--   labs(x=paste0('dPC 1 (',100*signif(dpca$sdev[1]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        y=paste0('dPC 2 (',100*signif(dpca$sdev[2]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='') -->
+
+<!-- ggplot(dpcadat,aes(x=dPC1,y=dPC2, color=genotype)) + -->
+<!--   geom_point(aes(shape=species),size=.5) + -->
+<!--   geom_polygon(data = dpcadat %>% -->
+<!--                  dplyr::group_by(genotype) %>% -->
+<!--                  dplyr::slice(chull(dPC1, dPC2)), alpha = 0.1, aes(fill=genotype), linewidth=.1) + -->
+<!--   my_theme() + -->
+<!--   facet_wrap(~species, ncol=2) + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,genotype_colors)) + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,genotype_colors)) + -->
+<!--   scale_shape_manual(values=c('human'=15,'mouse'=16)) + -->
+<!--   theme(legend.key.size=unit(1.5,'mm'), -->
+<!--         aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2) + -->
+<!--   guides(fill=guide_legend(ncol=2, override.aes = list(pch=c(rep(16,5),rep(15,14)))), -->
+<!--          color=guide_legend(ncol=2, override.aes = list(pch=c(rep(16,5),rep(15,14)))), -->
+<!--          shape='none') + -->
+<!--   labs(x=paste0('dPC 1 (',100*signif(dpca$sdev[1]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        y=paste0('dPC 2 (',100*signif(dpca$sdev[2]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='') -->
+
+<!-- dpcadat[,'group'] <- as.character(dpcadat$genotype) -->
+<!-- dpcadat[FB.meta$sample_donor,'group'] <- as.character(class_df$class) -->
+<!-- dpcadat[,'dataset'] <- 'CH12' -->
+<!-- dpcadat[dpcadat$species=='human','dataset'] <- human.meta$dataset -->
+<!-- ggplot(dpcadat,# %>% dplyr::filter(dataset!='validation'), -->
+<!--        aes(x=dPC1,y=dPC2, color=group)) + -->
+<!--   geom_point(aes(shape=species),size=.5) + -->
+<!--   geom_polygon(data = dpcadat %>% -->
+<!--                  #dplyr::filter(dataset!='validation') %>% -->
+<!--                  dplyr::group_by(group) %>% -->
+<!--                  dplyr::slice(chull(dPC1, dPC2)), alpha = 0.1, aes(fill=group), linewidth=.1) + -->
+<!--   my_theme() + -->
+<!--   facet_wrap(~species, ncol=2) + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,genotype_colors,class_colors)) + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,genotype_colors,class_colors)) + -->
+<!--   scale_shape_manual(values=c('human'=15,'mouse'=16)) + -->
+<!--   theme(legend.key.size=unit(1.5,'mm'), -->
+<!--         aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2) + -->
+<!--   guides(fill=guide_legend(ncol=2), #, override.aes = list(pch=c(rep(16,5),rep(15,10)))), -->
+<!--          color=guide_legend(ncol=2), #, override.aes = list(pch=c(rep(16,5),rep(15,10)))), -->
+<!--          shape='none') + -->
+<!--   labs(x=paste0('dPC 1 (',100*signif(dpca$sdev[1]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        y=paste0('dPC 2 (',100*signif(dpca$sdev[2]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='') -->
+<!-- ``` -->
+
+<!-- ```{r FigS4X3, fig.width=3 * fig_scale, fig.height=4 * fig_scale} -->
+<!-- tmp <- t(t(t(as.matrix(rbind(CH12.X[,all.cols], human.X[,all.cols]))) %*% as.matrix(dpcadat[,c('dPC1','dPC2')])) / colSums(dpcadat[,c('dPC1','dPC2')]**2)) %>% -->
+<!--   as.data.frame() %>% -->
+<!--   tibble::rownames_to_column('col') %>% -->
+<!--   dplyr::left_join(columns, by='col') %>% -->
+<!--   dplyr::mutate(col=factor(col, levels=columns %>%  -->
+<!--                              dplyr::filter(col %in% all.cols) %>% -->
+<!--                              dplyr::pull(col)), -->
+<!--                 col_name=gsub("_downsampled|_switch",'',col)) -->
+
+<!-- cols_shapes <- tmp %>%  -->
+<!--   dplyr::distinct(category, col, col_name) %>% -->
+<!--   dplyr::mutate(var_col=cat_cols[as.character(category)]) %>% -->
+<!--   dplyr::group_by(category) %>% -->
+<!--   dplyr::mutate(var_ind=1:n()) %>% -->
+<!--   dplyr::mutate(col=factor(col, levels=levels(tmp$col))) %>%  -->
+<!--   dplyr::arrange(col) -->
+
+<!-- ggplot(tmp,aes(x=dPC1,y=dPC2, color=col, shape=col)) + -->
+<!--   geom_point(size=1) + -->
+<!--   #geom_text_repel(aes(label=col), size=1) + -->
+<!--   my_theme() + -->
+<!--   scale_color_manual(values=cols_shapes %>% -->
+<!--                        dplyr::pull(var_col,col), -->
+<!--                      labels=cols_shapes %>% -->
+<!--                        dplyr::pull(col_name)) + -->
+<!--   scale_shape_manual(values=cols_shapes %>% -->
+<!--                        dplyr::pull(var_ind,col), -->
+<!--                      labels=cols_shapes %>% -->
+<!--                        dplyr::pull(col_name)) + -->
+<!--   theme(legend.key.size=unit(1.5,'mm'), -->
+<!--         aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2, -->
+<!--         legend.spacing=unit(0,'mm'), -->
+<!--         legend.key.spacing.y=unit(0,'mm'), -->
+<!--         legend.position='bottom', -->
+<!--         legend.box='horizontal') + -->
+<!--   guides(color=guide_legend(ncol=2), -->
+<!--          shape=guide_legend(ncol=2)) + -->
+<!--   labs(x='dPC 1', y='dPC 2', -->
+<!--        color='',shape='',fill='',alpha='') -->
+<!-- ``` -->
+
+<!-- ```{r FigS4X4, fig.width=6.75 * fig_scale, fig.height=3.5 * fig_scale} -->
+<!-- features.here <- c('cluster_entropy_downsampled', -->
+<!--                    'top_clone_occupancy_downsampled', -->
+<!--                    'donor_complexity', -->
+<!--                    'donor_score_W', -->
+<!--                    'donor_score_WGCW', -->
+<!--                    'homology_fw', -->
+<!--                    'n_homology_switch', -->
+<!--                    'mean_length_SA', -->
+<!--                    'frac_breaks_intra', -->
+<!--                    'frac_breaks_inversions') -->
+
+<!-- tmp <- cbind(rbind(CH12.data[,features.here], -->
+<!--                    FB.data.pooled[,features.here], -->
+<!--                    QP.data[,features.here]), -->
+<!--              rbind(CH12.meta %>%  -->
+<!--                      dplyr::mutate(diagnosis=genotype, -->
+<!--                                    dataset='CH12') %>% -->
+<!--                      dplyr::select(diagnosis, dataset), -->
+<!--                    human.meta[,c('diagnosis','dataset')])) %>% -->
+<!--   dplyr::filter(diagnosis %in% c('WT','Trp53bp1 KO','Brca1 KO','Rif1 KO','Lig4 KO','control','CVID','TNFRSF13B','ATM','BRCA1')) %>% -->
+<!--   tibble::rownames_to_column('sample') %>% -->
+<!--   gather(col,value,features.here) %>% -->
+<!--   dplyr::mutate(col=factor(gsub("_downsampled|_switch",'',col), -->
+<!--                            levels=gsub("_downsampled|_switch","",features.here)), -->
+<!--                 group=droplevels(factor(diagnosis, levels=c(names(genotype_colors), names(diagnosis_colors))))) -->
+
+<!-- ggplot(tmp, aes(x=ifelse(dataset=='CH12',as.numeric(group),as.numeric(group) + 1),y=value,fill=group)) + -->
+<!--   geom_boxplot(outlier.shape=NA, lwd=.5) + -->
+<!--   geom_jitter(width=.1,height=0,size=.1) + -->
+<!--   stat_compare_means(comparisons=list(c(1,2), -->
+<!--                                       c(1,3), -->
+<!--                                       c(1,4), -->
+<!--                                       c(1,5)), -->
+<!--                      method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) + -->
+<!--   stat_compare_means(comparisons=list(c(7,8), -->
+<!--                                       c(7,9), -->
+<!--                                       c(7,10), -->
+<!--                                       c(7,11)), -->
+<!--                      method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) + -->
+<!--   facet_wrap(.~col,ncol=5,scales='free_y') + -->
+<!--   my_theme() + -->
+<!--   coord_cartesian(clip='off') + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,genotype_colors)) + -->
+<!--   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=.5), -->
+<!--         legend.position='none') + -->
+<!--   scale_x_continuous(breaks=c(seq(1,5), seq(1,5) + 6), -->
+<!--                      labels=levels(tmp$group)) + -->
+<!--   labs(x='',y='', color='diagnosis') -->
+<!-- ``` -->
+
+<!-- ```{r FigS4X5, fig.width=3.5 * fig_scale, fig.height=3 * fig_scale} -->
+<!-- OC_sample_sheet <- read.csv('../sodar/2023_OC/a_2023_OC.txt', -->
+<!--                             sep='\t',header=1) %>% -->
+<!--   dplyr::left_join(read.csv('../sodar/2023_OC/s_2023_OC.txt',sep='\t',header=1), -->
+<!--                    by='Sample.Name') %>% -->
+<!--   dplyr::mutate(donor=as.character(Source.Name), -->
+<!--                 sample=Extract.Name.1, -->
+<!--                 batch=Parameter.Value.Batch., -->
+<!--                 QC=Parameter.Value.QC., -->
+<!--                 sequencing=Parameter.Value.Sequencing.method.) %>% -->
+<!--   dplyr::distinct(donor) -->
+
+<!-- OC.data <-read.csv('../human_samples/20240307_hg38_results/output/summary/20240307_human_samples_stats.csv', -->
+<!--                    header=1,row.names=1) %>% -->
+<!--   tibble::rownames_to_column('sample') %>% -->
+<!--   dplyr::filter(grepl('pooled_',sample)) %>% -->
+<!--   dplyr::mutate(sample_donor=gsub('pooled_','',sample)) %>% -->
+<!--   dplyr::inner_join(OC_sample_sheet, by=c('sample_donor'='donor')) %>% -->
+<!--   dplyr::filter(nreads_final > 500) %>% -->
+<!--   dplyr::mutate_all(~replace_na(.,0)) %>% -->
+<!--   dplyr::mutate(log10_nreads=log10(nreads_final), -->
+<!--                 log10_nclusters=log10(nclusters_final)) %>% -->
+<!--   tibble::column_to_rownames('sample_donor') -->
+
+<!-- OC.meta <- OC.data %>% -->
+<!--   tibble::rownames_to_column('donor') %>% -->
+<!--   dplyr::mutate(status=ifelse(grepl('BIH',sample),'OC','control'), -->
+<!--                 sample_donor=donor, -->
+<!--                 diagnosis=ifelse(donor %in% c('BIH116','BIH141','BIH152'), 'BRCA1', status), -->
+<!--                 timepoint='t1', -->
+<!--                 dataset='OC', -->
+<!--                 sex=NA, -->
+<!--                 age=NA, -->
+<!--                 complication=NA, -->
+<!--                 EUROclass=NA, -->
+<!--                 pct_B=NA, -->
+<!--                 pct_IgA=NA, -->
+<!--                 pct_IgG=NA) %>% -->
+<!--   dplyr::select(sample_donor,donor,diagnosis,status,timepoint,dataset,sex,age,complication,EUROclass,pct_B,pct_IgA,pct_IgG) %>% -->
+<!--   tibble::column_to_rownames('sample_donor') -->
+
+<!-- OC.X <- OC.data[row.names(OC.meta), selected.cols] %>% -->
+<!--   dplyr::mutate_if(is.numeric, scale) -->
+
+<!-- pcadat.all <- rbind(cbind(as.matrix(human.X[train,]) %*% pca$rotation, human.meta[train,]), -->
+<!--                     cbind(as.matrix(human.X[test,]) %*% pca$rotation, human.meta[test,]), -->
+<!--                     cbind(as.matrix(human.X[validation,]) %*% pca$rotation, human.meta[validation,]), -->
+<!--                     cbind(as.matrix(OC.X) %*% pca$rotation, OC.meta)) %>% -->
+<!--   dplyr::mutate(dataset=factor(dataset, levels=c('training','testing','validation','OC'))) -->
+
+<!-- ggplot(pcadat.all, aes(x=PC1,y=PC2)) + -->
+<!--   geom_polygon(data = pcadat.all %>% dplyr::filter(dataset=='training') %>% -->
+<!--                  dplyr::group_by(status) %>% -->
+<!--                  dplyr::slice(chull(PC1, PC2)), alpha = 0.1, color=NA, aes(fill=status), show.legend=FALSE) + -->
+<!--   geom_point(aes(color=diagnosis,alpha=dataset, shape=dataset), size=1) + -->
+<!--   geom_text_repel(data=pcadat.all %>% dplyr::filter(dataset=='OC'), aes(label=donor,color=diagnosis), size=2, segment.size=.25) + -->
+<!--   geom_line(aes(group=donor, color=diagnosis,alpha=dataset, shape=dataset)) + -->
+<!--   my_theme() + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,'OC'='deeppink'), guide='none') + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,'OC'='deeppink')) + -->
+<!--   scale_alpha_manual(values=c('testing'=.25,'training'=.25,'validation'=.5,'OC'=1)) + -->
+<!--   scale_shape_manual(values=c('testing'=15,'training'=16,'validation'=17,'OC'=18)) + -->
+<!--   guides(color=guide_legend(override.aes = list(shape=15,size=2),ncol=3), -->
+<!--          shape=guide_legend(ncol=1), -->
+<!--          alpha=guide_legend(ncol=1)) + -->
+<!--   theme(legend.key.height=unit(1.5,'mm'), -->
+<!--         legend.key.spacing=unit(0,'mm'), -->
+<!--         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2, -->
+<!--         legend.position='bottom', -->
+<!--         legend.box='horizontal') + -->
+<!--   coord_cartesian(xlim=c(-8,10), -->
+<!--                   ylim=c(-5,8), -->
+<!--                   clip='off') + -->
+<!--   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'), -->
+<!--        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='',alpha='') -->
+
+<!-- ``` -->
+
+<!-- ```{r FigS4X6, fig.width=3.5 * fig_scale, fig.height=3 * fig_scale} -->
+<!-- dpca <- dualPCA(human.X, OC.X) -->
+<!-- dpcadat <- cbind(rbind(dpca$x,dpca$y), -->
+<!--                  pcadat.all) -->
+
+<!-- ggplot(dpcadat, aes(x=dPC1,y=dPC2)) + -->
+<!--   geom_polygon(data = dpcadat %>% dplyr::filter(dataset=='training') %>% -->
+<!--                  dplyr::group_by(status) %>% -->
+<!--                  dplyr::slice(chull(dPC1, dPC2)), alpha = 0.1, color=NA, aes(fill=status), show.legend=FALSE) + -->
+<!--   geom_point(aes(color=diagnosis,alpha=dataset, shape=dataset), size=1) + -->
+<!--   geom_line(aes(group=donor, color=diagnosis,alpha=dataset, shape=dataset)) + -->
+<!--   geom_text_repel(data=dpcadat %>% dplyr::filter(dataset=='OC'), aes(label=donor, color=diagnosis), size=2, segment.size=.25) + -->
+<!--   my_theme() + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,'OC'='deeppink'), guide='none') + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,'OC'='deeppink')) + -->
+<!--   scale_alpha_manual(values=c('testing'=.25,'training'=.25,'validation'=.5,'OC'=1)) + -->
+<!--   scale_shape_manual(values=c('testing'=15,'training'=16,'validation'=17,'OC'=18)) + -->
+<!--   guides(color=guide_legend(override.aes = list(shape=15,size=2),ncol=3), -->
+<!--          shape=guide_legend(ncol=1), -->
+<!--          alpha=guide_legend(ncol=1)) + -->
+<!--   theme(legend.key.height=unit(1.5,'mm'), -->
+<!--         legend.key.spacing=unit(0,'mm'), -->
+<!--         #aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2, -->
+<!--         legend.position='bottom', -->
+<!--         legend.box='horizontal') + -->
+<!--   coord_cartesian(clip='off') + -->
+<!--   labs(x=paste0('dPC 1 (',100*signif(dpca$sdev[1]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        y=paste0('dPC 2 (',100*signif(dpca$sdev[2]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='',alpha='') -->
+
+<!-- ``` -->
+
+<!-- ```{r FigS4X7, fig.width=3.5 * fig_scale, fig.height=3 * fig_scale} -->
+<!-- LB_sample_sheet <- read.csv('../sodar/2023_LB/a_2023_LB.txt', -->
+<!--                             sep='\t',header=1) %>% -->
+<!--   dplyr::left_join(read.csv('../sodar/2023_LB/s_2023_LB.txt',sep='\t',header=1), -->
+<!--                    by='Sample.Name') %>% -->
+<!--   dplyr::mutate(donor=as.character(Source.Name), -->
+<!--                 sample=Extract.Name.1, -->
+<!--                 batch=Parameter.Value.Batch., -->
+<!--                 QC=Parameter.Value.QC., -->
+<!--                 diagnosis=Characteristics.Diagnosis., -->
+<!--                 sequencing=Parameter.Value.Sequencing.method.) %>% -->
+<!--   dplyr::distinct(donor,diagnosis) -->
+
+<!-- LB.data <- read.csv('../human_samples/20240307_hg38_results/output/summary/20240307_human_samples_stats.csv', -->
+<!--                    header=1,row.names=1) %>% -->
+<!--   tibble::rownames_to_column('sample') %>% -->
+<!--   dplyr::filter(grepl('pooled_',sample)) %>% -->
+<!--   dplyr::mutate(sample_donor=gsub('pooled_','',sample)) %>% -->
+<!--   dplyr::inner_join(LB_sample_sheet, by=c('sample_donor'='donor')) %>% -->
+<!--   dplyr::filter(nreads_final > 500) %>% -->
+<!--   dplyr::mutate_all(~replace_na(.,0)) %>% -->
+<!--   dplyr::mutate(log10_nreads=log10(nreads_final), -->
+<!--                 log10_nclusters=log10(nclusters_final)) %>% -->
+<!--   tibble::column_to_rownames('sample_donor') -->
+
+<!-- LB.meta <- LB.data %>% -->
+<!--   tibble::rownames_to_column('donor') %>% -->
+<!--   dplyr::mutate(sample_donor=donor, -->
+<!--                 status=diagnosis, -->
+<!--                 timepoint='t1', -->
+<!--                 dataset='LB', -->
+<!--                 sex=NA, -->
+<!--                 age=NA, -->
+<!--                 complication=NA, -->
+<!--                 EUROclass=NA, -->
+<!--                 pct_B=NA, -->
+<!--                 pct_IgA=NA, -->
+<!--                 pct_IgG=NA) %>% -->
+<!--   dplyr::select(sample_donor,donor,diagnosis,status,timepoint,dataset,sex,age,complication,EUROclass,pct_B,pct_IgA,pct_IgG) %>% -->
+<!--   tibble::column_to_rownames('sample_donor') -->
+
+<!-- LB.X <- LB.data[row.names(LB.meta), selected.cols] %>% -->
+<!--   dplyr::mutate_if(is.numeric, scale) -->
+
+<!-- pcadat.all <- rbind(cbind(as.matrix(human.X[train,]) %*% pca$rotation, human.meta[train,]), -->
+<!--                     cbind(as.matrix(human.X[test,]) %*% pca$rotation, human.meta[test,]), -->
+<!--                     cbind(as.matrix(human.X[validation,]) %*% pca$rotation, human.meta[validation,]), -->
+<!--                     cbind(as.matrix(LB.X) %*% pca$rotation, LB.meta)) %>% -->
+<!--   dplyr::mutate(dataset=factor(dataset, levels=c('training','testing','validation','LB'))) -->
+
+<!-- ggplot(pcadat.all, aes(x=PC1,y=PC2)) + -->
+<!--   geom_polygon(data = pcadat.all %>% dplyr::filter(dataset=='training') %>% -->
+<!--                  dplyr::group_by(status) %>% -->
+<!--                  dplyr::slice(chull(PC1, PC2)), alpha = 0.1, color=NA, aes(fill=status), show.legend=FALSE) + -->
+<!--   geom_point(aes(color=diagnosis,alpha=dataset, shape=dataset), size=1) + -->
+<!--   geom_text_repel(data=pcadat.all %>% dplyr::filter(dataset=='LB'), aes(label=donor,color=diagnosis), size=2, segment.size=.25) + -->
+<!--   geom_line(aes(group=donor, color=diagnosis,alpha=dataset, shape=dataset)) + -->
+<!--   my_theme() + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,'unknown'='gray'), guide='none') + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,'unknown'='gray')) + -->
+<!--   scale_alpha_manual(values=c('testing'=.25,'training'=.25,'validation'=.5,'LB'=1)) + -->
+<!--   scale_shape_manual(values=c('testing'=15,'training'=16,'validation'=17,'LB'=18)) + -->
+<!--   guides(color=guide_legend(override.aes = list(shape=15,size=2),ncol=3), -->
+<!--          shape=guide_legend(ncol=1), -->
+<!--          alpha=guide_legend(ncol=1)) + -->
+<!--   theme(legend.key.height=unit(1.5,'mm'), -->
+<!--         legend.key.spacing=unit(0,'mm'), -->
+<!--         aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2, -->
+<!--         legend.position='bottom', -->
+<!--         legend.box='horizontal') + -->
+<!--   coord_cartesian(xlim=c(-8,10), -->
+<!--                   ylim=c(-5,8), -->
+<!--                   clip='off') + -->
+<!--   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'), -->
+<!--        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='',alpha='') -->
+
+<!-- ``` -->
+
+<!-- ```{r FigS4X8, fig.width=3.5 * fig_scale, fig.height=3 * fig_scale} -->
+<!-- dpca <- dualPCA(human.X, LB.X) -->
+<!-- dpcadat <- cbind(rbind(dpca$x,dpca$y), -->
+<!--                  pcadat.all) -->
+
+<!-- ggplot(dpcadat, aes(x=dPC1,y=dPC2)) + -->
+<!--   geom_polygon(data = dpcadat %>% dplyr::filter(dataset=='training') %>% -->
+<!--                  dplyr::group_by(status) %>% -->
+<!--                  dplyr::slice(chull(dPC1, dPC2)), alpha = 0.1, color=NA, aes(fill=status), show.legend=FALSE) + -->
+<!--   geom_point(aes(color=diagnosis,alpha=dataset, shape=dataset), size=1) + -->
+<!--   geom_line(aes(group=donor, color=diagnosis,alpha=dataset, shape=dataset)) + -->
+<!--   geom_text_repel(data=dpcadat %>% dplyr::filter(dataset=='LB'), aes(label=donor, color=diagnosis), size=2, segment.size=.25) + -->
+<!--   my_theme() + -->
+<!--   scale_fill_manual(values=c(diagnosis_colors,'unknown'='gray'), guide='none') + -->
+<!--   scale_color_manual(values=c(diagnosis_colors,'unknown'='gray')) + -->
+<!--   scale_alpha_manual(values=c('testing'=.25,'training'=.25,'validation'=.5,'LB'=1)) + -->
+<!--   scale_shape_manual(values=c('testing'=15,'training'=16,'validation'=17,'LB'=18)) + -->
+<!--   guides(color=guide_legend(override.aes = list(shape=15,size=2),ncol=3), -->
+<!--          shape=guide_legend(ncol=1), -->
+<!--          alpha=guide_legend(ncol=1)) + -->
+<!--   theme(legend.key.height=unit(1.5,'mm'), -->
+<!--         legend.key.spacing=unit(0,'mm'), -->
+<!--         #aspect.ratio=dpca$sdev[2]**2/dpca$sdev[1]**2, -->
+<!--         legend.position='bottom', -->
+<!--         legend.box='horizontal') + -->
+<!--   coord_cartesian(clip='off') + -->
+<!--   labs(x=paste0('dPC 1 (',100*signif(dpca$sdev[1]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        y=paste0('dPC 2 (',100*signif(dpca$sdev[2]**2/sum(dpca$sdev**2),3),'%)'), -->
+<!--        color='',shape='',fill='',alpha='') -->
+
+<!-- ``` -->
 
 <!-- ```{r aggregated_FB_boxplots, fig.width=4.5 * fig_scale, fig.height=1.7 * fig_scale} -->
 <!-- tmp <- FB.X.aggregated %>% -->
@@ -2193,60 +2833,60 @@ hm2
 <!--   labs(x='',y='category score', color='diagnosis') -->
 <!-- ``` -->
 
-check correlation with measured B cell proportion in FACS
+<!-- check correlation with measured B cell proportion in FACS -->
 
-```{r pct_B_cor, fig.width=3 * fig_scale, fig.height=3 * fig_scale}
-FB.data.pooled %>%
-  gather(feature, value, selected.cols) %>%
-  dplyr::group_by(feature) %>%
-  dplyr::summarise(R=cor(value, pct_B, use='na.or.complete')) %>%
-  dplyr::left_join(columns, by=c('feature'='col')) %>%
-  dplyr::mutate(feature=gsub('_downsampled|_switch','',feature)) %>%
-  dplyr::arrange(R) %>%
-  dplyr::mutate(feature=factor(feature, levels=feature)) %>%
-  ggplot(aes(y=R, x=feature, fill=category)) + 
-  geom_col() +
-  my_theme() +
-  coord_flip() +
-  scale_fill_manual(values=cat_cols) +
-  labs(x='',y='correlation with % B cells') +
-  theme(legend.position=c(.2,.9))
-
-
-FB.data.pooled %>%
-  gather(feature, value, selected.cols) %>%
-  dplyr::group_by(feature) %>%
-  dplyr::summarise(R=cor(value, pct_IgA, use='na.or.complete')) %>%
-  dplyr::left_join(columns, by=c('feature'='col')) %>%
-  dplyr::mutate(feature=gsub('_downsampled|_switch','',feature)) %>%
-  dplyr::arrange(R) %>%
-  dplyr::mutate(feature=factor(feature, levels=feature)) %>%
-  ggplot(aes(y=R, x=feature, fill=category)) + 
-  geom_col() +
-  my_theme() +
-  coord_flip() +
-  scale_fill_manual(values=cat_cols) +
-  labs(x='',y='correlation with % IgA cells') +
-  theme(legend.position=c(.2,.9))
-
-FB.data.pooled %>%
-  gather(feature, value, selected.cols) %>%
-  dplyr::group_by(feature) %>%
-  dplyr::summarise(R=cor(value, pct_IgG, use='na.or.complete')) %>%
-  dplyr::left_join(columns, by=c('feature'='col')) %>%
-  dplyr::mutate(feature=gsub('_downsampled|_switch','',feature)) %>%
-  dplyr::arrange(R) %>%
-  dplyr::mutate(feature=factor(feature, levels=feature)) %>%
-  ggplot(aes(y=R, x=feature, fill=category)) + 
-  geom_col() +
-  my_theme() +
-  coord_flip() +
-  scale_fill_manual(values=cat_cols) +
-  labs(x='',y='correlation with % IgG cells') +
-  theme(legend.position=c(.2,.9))
+<!-- ```{r pct_B_cor, fig.width=3 * fig_scale, fig.height=3 * fig_scale} -->
+<!-- FB.data.pooled %>% -->
+<!--   gather(feature, value, selected.cols) %>% -->
+<!--   dplyr::group_by(feature) %>% -->
+<!--   dplyr::summarise(R=cor(value, pct_B, use='na.or.complete')) %>% -->
+<!--   dplyr::left_join(columns, by=c('feature'='col')) %>% -->
+<!--   dplyr::mutate(feature=gsub('_downsampled|_switch','',feature)) %>% -->
+<!--   dplyr::arrange(R) %>% -->
+<!--   dplyr::mutate(feature=factor(feature, levels=feature)) %>% -->
+<!--   ggplot(aes(y=R, x=feature, fill=category)) +  -->
+<!--   geom_col() + -->
+<!--   my_theme() + -->
+<!--   coord_flip() + -->
+<!--   scale_fill_manual(values=cat_cols) + -->
+<!--   labs(x='',y='correlation with % B cells') + -->
+<!--   theme(legend.position=c(.2,.9)) -->
 
 
-```
+<!-- FB.data.pooled %>% -->
+<!--   gather(feature, value, selected.cols) %>% -->
+<!--   dplyr::group_by(feature) %>% -->
+<!--   dplyr::summarise(R=cor(value, pct_IgA, use='na.or.complete')) %>% -->
+<!--   dplyr::left_join(columns, by=c('feature'='col')) %>% -->
+<!--   dplyr::mutate(feature=gsub('_downsampled|_switch','',feature)) %>% -->
+<!--   dplyr::arrange(R) %>% -->
+<!--   dplyr::mutate(feature=factor(feature, levels=feature)) %>% -->
+<!--   ggplot(aes(y=R, x=feature, fill=category)) +  -->
+<!--   geom_col() + -->
+<!--   my_theme() + -->
+<!--   coord_flip() + -->
+<!--   scale_fill_manual(values=cat_cols) + -->
+<!--   labs(x='',y='correlation with % IgA cells') + -->
+<!--   theme(legend.position=c(.2,.9)) -->
+
+<!-- FB.data.pooled %>% -->
+<!--   gather(feature, value, selected.cols) %>% -->
+<!--   dplyr::group_by(feature) %>% -->
+<!--   dplyr::summarise(R=cor(value, pct_IgG, use='na.or.complete')) %>% -->
+<!--   dplyr::left_join(columns, by=c('feature'='col')) %>% -->
+<!--   dplyr::mutate(feature=gsub('_downsampled|_switch','',feature)) %>% -->
+<!--   dplyr::arrange(R) %>% -->
+<!--   dplyr::mutate(feature=factor(feature, levels=feature)) %>% -->
+<!--   ggplot(aes(y=R, x=feature, fill=category)) +  -->
+<!--   geom_col() + -->
+<!--   my_theme() + -->
+<!--   coord_flip() + -->
+<!--   scale_fill_manual(values=cat_cols) + -->
+<!--   labs(x='',y='correlation with % IgG cells') + -->
+<!--   theme(legend.position=c(.2,.9)) -->
+
+
+<!-- ``` -->
 
 # session info
 

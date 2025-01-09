@@ -1,0 +1,61 @@
+# CONFIG FILE FOR SWIBRID
+#
+# name of conda environment (will be passed to snakemake)
+ENV: "swibrid"
+# default options to pass to snakemake
+SNAKEOPTS: "-j 100 -k --rerun-incomplete --latency-wait 60 -p --retries 1 --profile=cubi-dev" 
+# study name
+STUDY: "HTGTS"
+# input fastq file (if demultiplexing is included)
+INPUT: ""
+# sample sheet specifying barcodes and associated sample names
+SAMPLE_SHEET: ""
+# fasta file with barcodes and primers used during demultiplexing 
+BARCODES_PRIMERS: 'index/barcodes_primers.fa'
+# list of samples for which  to run the pipeline
+SAMPLES: ["SRR2104731","SRR2104732","SRR2104733","SRR2104734","SRR2104735","SRR2104736","SRR2104737","SRR2104738","SRR2104739","SRR2104740","SRR2104741","SRR2104742","SRR2104743","SRR2104744","SRR2104745","SRR2104746","SRR2104747","SRR6293456","SRR6293457","SRR6293458","SRR6293459","SRR6293460","SRR6293461","SRR6293462","SRR6293463","SRR6293464","SRR6293465","SRR6293466","SRR6293467","SRR6293468","SRR6293469","SRR6293470","SRR6293471","SRR6293472","SRR6293473","SRR6293474","SRR6293475","SRR6293476","SRR6293477","SRR6293478","SRR6293479"]
+# minimum read length
+MINLENGTH: 100
+# reference genome (fasta file, index should be present)
+REFERENCE: 'index/mm10.fa'
+# LAST index of reference genome
+LAST_INDEX: 'index/mm10db'
+# minimap2 index of reference genome
+MINIMAP_INDEX: 'index/mm10.mmi'
+# star index of reference genome
+STAR_INDEX: 'index/mm10_star'
+# bwa index of reference genome
+BWA_INDEX: 'index/mm10.fa'
+# aligner to use (LAST is more precise and recommended, minimap2 is much faster)
+ALIGNER: 'bwa'
+# fasta file specifying the telomer repeat unit
+TELO_REPEAT: ''
+# coordinates of switch region (altogether)
+SWITCH: 'chr12:113200000-113500000:-'
+# bed file with coordinates of individual switch regions
+SWITCH_ANNOTATION: 'mm10_switch_regions.bed'
+# bed file with gene annotation
+ANNOTATION: ''
+# vcf file with variant annotation
+VARIANT_ANNOTATION: ''
+# max number of reads to cluster
+NMAX: 10000
+# clustering metric to use 
+CLUSTERING_METRIC: 'cosine'
+# clustering method to use
+CLUSTERING_METHOD: 'average'
+# fixed clustering cutoff
+CLUSTERING_CUTOFF: 0.001
+# cutoff for cluster filtering
+CLUSTER_FILTERING_CUTOFF: 0.95
+# max gap size to remove before clustering
+MAX_GAP: 0
+# bin size for breakpoint analysis
+BINSIZE: 50
+# blacklisted regions for insert detection
+# weights to use for averaging features over clusters (or reads)
+WEIGHTS: 'cluster'
+# number of reads to use for downsampling analysis
+CLUSTER_DOWNSAMPLING_NREADS: 1000
+# number of replicates used in downsampling
+CLUSTER_DOWNSAMPLING_NREPS: 10

@@ -1,0 +1,661 @@
+import os
+
+shell.executable("/bin/bash")
+shell.prefix("set -e pipefail;")
+
+def increase_mem (wildcards, attempt):
+  return 32000*attempt
+
+def get_partition (wildcards, attempt):
+  return 'medium' # if attempt <= 5 else 'highmem')
+
+if "INPUT_CLONES" in config and os.path.isfile(config["INPUT_CLONES"]):
+  ruleorder: simulate > demux
+else:
+  ruleorder: demux > simulate
+
+if config["ALIGNER"] == "bwa":
+  ruleorder: bwa > star > minimap
+elif config["ALIGNER"] == "STAR":
+  ruleorder: star > bwa > minimap
+else:
+  ruleorder: minimap > bwa > star
+
+
+rule all:
+  input:
+     expand('output/read_plots/{sample}_reads_by_cluster.png',sample=config['SAMPLES']),
+     expand('output/read_plots/{sample}_reads_by_coverage.png',sample=config['SAMPLES']),
+     expand('output/QC_plots/{sample}_summary.png',sample=config['SAMPLES']),
+     expand('output/breakpoint_plots/{sample}_breakpoints.png',sample=config['SAMPLES']),
+     'output/summary/{0}_stats.csv'.format(config['STUDY']),
+
+
+rule demux:
+  input:
+    config['INPUT']
+  output:
+    fastq=expand('input/{sample}.fastq.gz',sample=config['SAMPLES']),
+    info=expand('input/{sample}_info.csv',sample=config['SAMPLES'])
+  params:
+    sample_sheet=config['SAMPLE_SHEET'],
+    barcodes_primers=config['BARCODES_PRIMERS']
+  threads: 4
+  resources:
+    mem_mb=32000,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/all/demux.log"  
+  shell:
+    r"""
+    mkdir -p input demux
+    cat {params.barcodes_primers} | makeblastdb -in - -title "barcodes_primers" -out demux/barcodes_primers -input_type fasta -dbtype nucl 2> {log}
+    gunzip -c {input} | awk '{{if(NR%4==1) {{printf(">%s\n",substr($0,2));}} else if(NR%4==2) print;}}' | blastn -db demux/barcodes_primers -query - -task blastn-short -max_target_seqs 50 -outfmt "6 saccver qaccver slen qlen pident length qstart qend evalue" -gapopen 5 -gapextend 2 -reward 3 -penalty -4 -evalue 1 -num_threads 1 -perc_identity 50 > demux/blast_output.txt 2>> {log}
+    swibrid demultiplex -i {input} -b demux/blast_output.txt -f demux/summary.png --collapse -o input -r demux/stats.csv --split-reads -s {params.sample_sheet} -c 50 2>> {log}
+    """
+
+def get_simulation_params(config, sample, param):
+    if param in config['SIMULATION_PARAMS'][sample]:
+        return config['SIMULATION_PARAMS'][sample][param]
+    elif param in config['SIMULATION_PARAMS']:
+        return config['SIMULATION_PARAMS'][param]
+    else:
+        return []
+
+rule simulate:
+  output:
+    fastq='input/{sample}.fastq.gz',
+    info='input/{sample}_info.csv',
+  params:
+    reference=config['REFERENCE'],
+    clones=lambda wc: get_simulation_params(config, wc.sample, "input_clones"),
+    variants=lambda wc: get_simulation_params(config, wc.sample, "input_variants"),
+    input_pars=lambda wc: get_simulation_params(config, wc.sample, "input_pars"),
+    nclones=lambda wc: get_simulation_params(config, wc.sample, "nclones"),
+    nreads=lambda wc: get_simulation_params(config, wc.sample, "nreads"),
+    model=lambda wc: get_simulation_params(config, wc.sample, "model"),
+    seed=lambda wc: get_simulation_params(config, wc.sample, "seed")
+  resources:
+    mem_mb=32000,
+    time='02:00:00'
+  conda:
+    config['ENV']
+  log: "logs/simulate/{sample}.log"
+  shell:
+    r"""
+    mkdir -p input 
+    swibrid get_synthetic_reads -b {params.clones} -r {params.reference} -p {params.input_pars} -n {params.nclones} -k {params.nreads} -d {params.model} -s {params.seed} --variants {params.variants} -o {output.fastq} -i {output.info} 2> {log}
+    """
+
+
+rule last:
+  input:
+    'input/{sample}.fastq.gz'
+  output:
+    maf='pipeline/{sample}/{sample}_aligned.maf.gz',
+    par='pipeline/{sample}/{sample}_last_pars.npz'
+  params:
+    index=config['LAST_INDEX'],
+    par=config['SIMULATION_PARAMS']['input_pars'] if 'SIMULATION_PARAMS' in config else "par_dummy"
+  threads: 4
+  resources:
+    mem_mb=32000,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/last/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    if [[ -f {params.par} ]]; then 
+	lastal -P4 -Q fastx -p {params.par} {params.index} {input} | last-split -m1e-6 | grep -v "^p" | gzip > {output.maf} 2>> {log}
+    	swibrid get_alignment_pars  -i {params.par} -o {output.par} 2>> {log}
+    else
+    	last-train -P4 -Q fastx {params.index} {input} > pipeline/{wildcards.sample}/{wildcards.sample}.par  2> {log}
+    	lastal -P4 -Q fastx -p pipeline/{wildcards.sample}/{wildcards.sample}.par {params.index} {input} | last-split -m1e-6 | grep -v "^p" | gzip > {output.maf} 2>> {log}
+    	swibrid get_alignment_pars  -i pipeline/{wildcards.sample}/{wildcards.sample}.par -o {output.par} 2>> {log}
+    fi
+    """
+
+
+rule minimap:
+  input:
+    'input/{sample}.fastq.gz'
+  output:
+    bam='pipeline/{sample}/{sample}_aligned.bam',
+  params:
+    index=config['MINIMAP_INDEX'],
+  threads: 4
+  resources:
+    mem_mb=32000,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/minimap/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    minimap2 -a -x sr -t {threads} --secondary=no --sam-hit-only {params.index} {input} | samtools view -b - > {output.bam} 2> {log}
+    """
+
+
+rule bam_pars:
+  input:
+    bam='pipeline/{sample}/{sample}_aligned.bam',
+  output:
+    par='pipeline/{sample}/{sample}_bam_pars.npz'
+  params:
+    reference=config['REFERENCE']
+  threads: 1
+  resources:
+    mem_mb=32000,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/bam_pars/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid get_alignment_pars -i {input.bam} -o {output.par} -r {params.reference} 2> {log}
+    """
+
+
+rule star:
+  input:
+    'input/{sample}.fastq.gz'
+  output:
+    bam='pipeline/{sample}/{sample}_aligned.bam',
+  params:
+    index=config['STAR_INDEX'],
+  threads: 4
+  resources:
+    mem_mb=32000,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/star/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    STAR --genomeDir {params.index} --runThreadN {threads} --outSAMtype BAM --outFileNamePrefix pipeline/{wildcards.sample}/star/ --readFilesIn={input} --readFilesCommand zcat --chimSegmentMin 10 --chimOutType WithinBAM
+    mv pipeline/{wildcards.sample}/star/Aligned.out.bam {output.bam}
+    mv pipeline/{wildcards.sample}/star/Log.final.out {log}
+    rm -rf pipeline/{wildcards.sample}/star
+    """
+
+
+rule bwa:
+  input:
+    'input/{sample}.fastq.gz',
+  output:
+    bam='pipeline/{sample}/{sample}_aligned.bam',
+  params:
+    index=config['BWA_INDEX'],
+  threads: 4
+  resources:
+    mem_mb=32000,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/bwa/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    bwa-mem2 mem -p -t {threads} {params.index} {input} | samtools view -b > {output.bam} 2> {log}
+    """
+
+
+rule telo:
+  input:
+    'input/{sample}.fastq.gz'
+  output:
+    'pipeline/{sample}/{sample}_telo.out'
+  params:
+    telo_repeat=config['TELO_REPEAT'] if os.path.isfile(config['TELO_REPEAT'])  else "telo_dummy"
+  threads: 1
+  resources:
+    mem_mb=16000,
+    time='04:00:00'
+  conda:
+    config['ENV']
+  log: "logs/telo/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    echo -e "qseqid\tslen\tqlen\tpident\tlength\tqstart\tqend\tevalue" > {output}
+    if [[ -f {params.telo_repeat} ]]; then 
+        zcat {input} | awk '{{if(NR%4==1) {{printf(">%s\n",substr($0,2));}} else if(NR%4==2) print;}}' | blastn -subject {params.telo_repeat} -query - -task blastn-short -outfmt "6 qseqid slen qlen pident length qstart qend evalue" -gapopen 5 -gapextend 2 -reward 3 -penalty -4 -evalue 1 -perc_identity 75 -dust no | uniq >> {output} 2> {log}
+    fi
+    """
+
+
+rule process:
+  input:
+    alignments='pipeline/{sample}/{sample}_aligned.maf.gz' if config['ALIGNER']=='LAST' else 'pipeline/{sample}/{sample}_aligned.bam',
+    reads='input/{sample}.fastq.gz',
+    info='input/{sample}_info.csv'
+  output:
+    out='pipeline/{sample}/{sample}_processed.out',
+    stats='pipeline/{sample}/{sample}_process_stats.csv',
+    fasta='pipeline/{sample}/{sample}_aligned.fasta.gz',
+    alignments='pipeline/{sample}/{sample}_breakpoint_alignments.csv',
+  params:
+    minlength=config['MINLENGTH'],
+    switch=config['SWITCH'],
+    switch_anno=config['SWITCH_ANNOTATION'],
+    genome=config['REFERENCE'],
+    min_cov=.2,
+    max_gap=config['MAX_GAP'],
+    blacklist_regions=config['BLACKLIST_REGIONS'] if 'BLACKLIST_REGIONS' in config else []
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='08:00:00'
+  conda:
+    config['ENV']
+  log: "logs/process/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid process_alignments --alignments {input.alignments} --switch_coords {params.switch} --switch_annotation {params.switch_anno} --outfile {output.out} --stats {output.stats} --min_cov {params.min_cov} --sequences {output.fasta} --blacklist_regions {params.blacklist_regions} --realign_breakpoints {output.alignments} --raw_reads {input.reads} --genome {params.genome} --info {input.info} --min_length {params.minlength} --realignment_penalties sr --min_switch_match 10 --max_gap {params.max_gap} --min_insert_match 1 --keep_secondary_alignments --min_num_switch_matches 2 --max_switch_overlap 10 --remove_isotypes Sm --ignore_order 2> {log}
+    """
+
+rule inserts:
+  input:
+    processed='pipeline/{sample}/{sample}_processed.out',
+    reads='input/{sample}.fastq.gz',
+  output:
+    tsv='pipeline/{sample}/{sample}_inserts.tsv',
+    bed='pipeline/{sample}/{sample}.bed',
+  params:
+    switch=config['SWITCH'],
+    annotation=config['ANNOTATION'] if 'ANNOTATION' in config else [],
+    switch_anno=config['SWITCH_ANNOTATION'],
+  threads: 1
+  resources:
+    mem_mb=16000,
+    time='01:00:00'
+  conda:
+    config['ENV']
+  log: "logs/inserts/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid create_bed --raw_reads {input.reads} --processed_alignments {input.processed} --bed {output.bed} --switch_coords {params.switch} --annotation {params.annotation} --switch_annotation {params.switch_anno} --outfile {output.tsv} 2> {log}
+    """
+
+
+rule msa:
+  input:
+    coords='pipeline/{sample}/{sample}_processed.out',
+    sequences='pipeline/{sample}/{sample}_aligned.fasta.gz',
+  output:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    out='pipeline/{sample}/{sample}_msa.csv'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    nmax=config['NMAX']
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='08:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/msa/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid construct_msa --coords {input.coords} --sequences {input.sequences} --msa {output.msa} --switch_coords {params.switch} --switch_annotation {params.switch_annotation} --out {output.out} --use_orientation --nmax {params.nmax} 2> {log}
+    """
+
+
+rule gaps:
+  input:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    msa_csv='pipeline/{sample}/{sample}_msa.csv'
+  output:
+    gaps='pipeline/{sample}/{sample}_gaps.npz'
+  params:
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='08:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/gaps/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid get_gaps --msa {input.msa} -o {output.gaps} --msa_csv {input.msa_csv} 2> {log}
+    """
+
+
+rule linkage:
+  input:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    gaps='pipeline/{sample}/{sample}_gaps.npz'
+  output:
+    linkage='pipeline/{sample}/{sample}_linkage.npz'
+  params:
+    nmax=config['NMAX'],
+    max_gap=config['MAX_GAP'],
+    metric=config['CLUSTERING_METRIC'],
+    method=config['CLUSTERING_METHOD']
+  threads: 8
+  resources:
+    mem_mb=increase_mem,
+    time='48:00:00',
+    partition=get_partition,
+  conda:
+    config['ENV']
+  log: "logs/linkage/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid construct_linkage --msa {input.msa} --gaps {input.gaps} --max_gap {params.max_gap} --metric {params.metric} --method {params.method} --nmax {params.nmax} --n_threads {threads} --linkage {output.linkage}  2> {log}
+    """
+
+
+rule cluster:
+  input:
+    linkage='pipeline/{sample}/{sample}_linkage.npz',
+    msa='pipeline/{sample}/{sample}_msa.csv'
+  output:
+    cluster='pipeline/{sample}/{sample}_clustering.csv',
+    stats='pipeline/{sample}/{sample}_cluster_stats.csv',
+    scanning='pipeline/{sample}/{sample}_cutoff_scanning.csv'
+  params:
+    cutoff=config['CLUSTERING_CUTOFF'],
+    filtering_cutoff=config['CLUSTER_FILTERING_CUTOFF']
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='08:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/cluster/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid find_clusters -l {input.linkage} -i {input.msa} -o {output.cluster} -s {output.stats} --scanning {output.scanning} -f {params.cutoff} --filtering_cutoff {params.filtering_cutoff} 2> {log}
+    """
+
+
+rule variants:
+  input:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    clustering='pipeline/{sample}/{sample}_clustering.csv',
+    pars='pipeline/{sample}/{sample}_last_pars.npz' if config['ALIGNER']=='LAST' else 'pipeline/{sample}/{sample}_bam_pars.npz',
+  output:
+    txt='pipeline/{sample}/{sample}_variants.txt',
+    mat='pipeline/{sample}/{sample}_variants.npz',
+    ht='pipeline/{sample}/{sample}_haplotypes.csv',
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    reference=config['REFERENCE'],
+    variant_annotation=config['VARIANT_ANNOTATION'] if 'VARIANT_ANNOTATION' in config else []
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='04:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/variants/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid find_variants --msa {input.msa} --switch_coords {params.switch} --switch_annotation {params.switch_annotation} --clustering {input.clustering} --reference {params.reference} --pars {input.pars} -o {output.txt} -m {output.mat} --haplotypes {output.ht}  --variant_annotation {params.variant_annotation} 2> {log}
+    """
+
+
+rule rearrangements:
+  input:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+  output:
+    bed='pipeline/{sample}/{sample}_rearrangements.bed',
+    mat='pipeline/{sample}/{sample}_rearrangements.npz'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='04:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/rearrangements/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    swibrid find_rearrangements --msa {input.msa} --switch_coords {params.switch} --switch_annotation {params.switch_annotation} -o {output.bed} -m {output.mat} 2> {log}
+    """
+
+
+rule homology:
+  output:
+    'pipeline/all/homology.npz'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    binsize=config['BINSIZE'],
+    genome=config['REFERENCE']
+  threads: 1
+  resources:
+    mem_mb=32000,
+    time='4:00:00',
+    partition='short'
+  conda:
+    config['ENV']
+  log: "logs/all/homology.log"
+  shell:
+    r"""
+    mkdir -p pipeline/all
+    swibrid get_switch_homology --switch_coords {params.switch} --switch_annotation {params.switch_annotation} --binsize {params.binsize} --genome {params.genome} -o {output} 2> {log}
+    """
+
+
+rule motifs:
+  output:
+    'pipeline/all/motifs.npz'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    binsize=config['BINSIZE'],
+    genome=config['REFERENCE']
+  threads: 1
+  resources:
+    mem_mb=32000,
+    time='4:00:00',
+    partition='short'
+  conda:
+    config['ENV']
+  log: "logs/all/motifs.log"
+  shell:
+    r"""
+    mkdir -p pipeline/all
+    swibrid get_switch_motifs --switch_coords {params.switch} --switch_annotation {params.switch_annotation} --binsize {params.binsize} --genome {params.genome} -o {output} 2> {log}
+    """
+
+
+rule analyze_clustering:
+  input:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    gaps='pipeline/{sample}/{sample}_gaps.npz',
+    clustering='pipeline/{sample}/{sample}_clustering.csv',
+    realignments='pipeline/{sample}/{sample}_breakpoint_alignments.csv',
+    inserts='pipeline/{sample}/{sample}_inserts.tsv'
+  output:
+    'pipeline/{sample}/{sample}_cluster_analysis.csv'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    max_gap=config['MAX_GAP']
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='08:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/cluster/{sample}_analysis.log"
+  shell:
+    r"""
+    swibrid analyze_clustering -o {output} --msa {input.msa} --gaps {input.gaps} --max_gap {params.max_gap} --clustering {input.clustering} --switch_coords {params.switch} --switch_annotation {params.switch_annotation} --realignments {input.realignments} --inserts {input.inserts} --adjust_size --max_realignment_gap 100 2> {log}
+    """
+
+
+rule downsample_clustering:
+  input:
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    gaps='pipeline/{sample}/{sample}_gaps.npz',
+    cluster_stats='pipeline/{sample}/{sample}_cluster_stats.csv',
+  output:
+    'pipeline/{sample}/{sample}_cluster_downsampling.csv'
+  params:
+    max_gap=config['MAX_GAP'],
+    metric=config['CLUSTERING_METRIC'],
+    method=config['CLUSTERING_METHOD'],
+    filtering_cutoff=config['CLUSTER_FILTERING_CUTOFF'],
+    nreads=config['CLUSTER_DOWNSAMPLING_NREADS'],
+    nreps=config['CLUSTER_DOWNSAMPLING_NREPS']
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='08:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/cluster/{sample}_downsampling.log"
+  shell:
+    r"""
+    swibrid downsample_clustering -s {output} --msa {input.msa} --gaps {input.gaps} --max_gap {params.max_gap} --cluster_stats {input.cluster_stats} --metric {params.metric} --method {params.method} --nreads {params.nreads} --nreps {params.nreps} --filtering_cutoff {params.filtering_cutoff} 2> {log}
+    """
+
+
+rule breakpoint_stats:
+  input:
+    gaps='pipeline/{sample}/{sample}_gaps.npz',
+    clustering='pipeline/{sample}/{sample}_clustering.csv',
+    rearrangements='pipeline/{sample}/{sample}_rearrangements.npz',
+    homology='pipeline/all/homology.npz',
+    motifs='pipeline/all/motifs.npz'
+  output:
+    stats='pipeline/{sample}/{sample}_breakpoint_stats.csv',
+    plot='output/breakpoint_plots/{sample}_breakpoints.png'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    binsize=config['BINSIZE'],
+    max_gap=config['MAX_GAP'],
+    weights=config['WEIGHTS']
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='4:00:00',
+  conda:
+    config['ENV']
+  log: "logs/breakpoints/{sample}_stats.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    mkdir -p output/breakpoint_plots
+    swibrid get_breakpoint_stats -g {input.gaps} -c {input.clustering} -r {input.rearrangements} -b {params.binsize} --max_gap {params.max_gap} --homology {input.homology} --motifs {input.motifs} --switch_coords {params.switch} --switch_annotation {params.switch_annotation} -o {output.stats} --weights {params.weights} --plot {output.plot} --sample {wildcards.sample} 2> {log}
+    """
+
+
+rule plot_clustering:
+  input:
+    process='pipeline/{sample}/{sample}_processed.out',
+    info='input/{sample}_info.csv',
+    clustering='pipeline/{sample}/{sample}_clustering.csv',
+    linkage='pipeline/{sample}/{sample}_linkage.npz',
+    scanning='pipeline/{sample}/{sample}_cutoff_scanning.csv',
+    msa='pipeline/{sample}/{sample}_msa.npz',
+    stats='pipeline/{sample}/{sample}_cluster_stats.csv',
+  output:
+    reads='output/read_plots/{sample}_reads_by_cluster.png',
+    coverage='output/read_plots/{sample}_reads_by_coverage.png',
+  params:
+    switch=config['SWITCH'],
+    annotation=config['ANNOTATION'] if 'ANNOTATION' in config else [],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='04:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/plots/{sample}.log"
+  shell:
+    r"""
+    mkdir -p output/read_plots
+    swibrid plot_clustering --msa {input.msa} --figure {output.reads} --linkage {input.linkage} --info {input.info}  --clustering_results {input.clustering} --switch_annotation {params.switch_annotation} --switch_coords {params.switch} --annotation {params.annotation} --color_by cluster --clustering_stats {input.stats} --sample {wildcards.sample} --dpi 500 --omit_scale_bar --coords {input.process} 2> {log}
+    swibrid plot_clustering --msa {input.msa} --figure {output.coverage} --linkage {input.linkage} --info {input.info}  --clustering_results {input.clustering} --switch_annotation {params.switch_annotation} --switch_coords {params.switch} --annotation {params.annotation} --color_by coverage --clustering_stats {input.stats} --sample {wildcards.sample} --dpi 500 --omit_scale_bar --show_inserts --coords {input.process} 2> {log}
+    """
+
+
+rule summary:
+  input:
+    info='input/{sample}_info.csv',
+    process='pipeline/{sample}/{sample}_process_stats.csv',
+    clustering='pipeline/{sample}/{sample}_clustering.csv',
+    scanning='pipeline/{sample}/{sample}_cutoff_scanning.csv',
+    cluster_stats='pipeline/{sample}/{sample}_cluster_stats.csv',
+    cluster_analysis='pipeline/{sample}/{sample}_cluster_analysis.csv',
+    cluster_downsampling='pipeline/{sample}/{sample}_cluster_downsampling.csv',
+    gaps='pipeline/{sample}/{sample}_gaps.npz',
+    breakpoint_stats='pipeline/{sample}/{sample}_breakpoint_stats.csv',
+  output:
+    plot='output/QC_plots/{sample}_summary.png',
+    stats='pipeline/{sample}/{sample}_summary.csv'
+  params:
+    switch=config['SWITCH'],
+    switch_annotation=config['SWITCH_ANNOTATION'],
+    max_gap=config['MAX_GAP'],
+    weights=config['WEIGHTS']
+  threads: 1
+  resources:
+    mem_mb=increase_mem,
+    time='04:00:00',
+    partition=get_partition
+  conda:
+    config['ENV']
+  log: "logs/summary/{sample}.log"
+  shell:
+    r"""
+    mkdir -p pipeline/{wildcards.sample}
+    mkdir -p output/QC_plots
+    swibrid get_summary --sample {wildcards.sample} --figure {output.plot} --stats {output.stats} --process {input.process} --info {input.info} --gaps {input.gaps} --clustering {input.clustering} --scanning {input.scanning} --cluster_stats {input.cluster_stats} --switch_anno {params.switch_annotation} --switch_coords {params.switch} --breakpoint_stats {input.breakpoint_stats} --max_gap {params.max_gap} --cluster_analysis {input.cluster_analysis} --cluster_downsampling {input.cluster_downsampling} --weights {params.weights} 2> {log}
+    """
+
+
+rule collect:
+  input:
+     expand("pipeline/{sample}/{sample}_summary.csv", sample=config['SAMPLES']),
+     expand("pipeline/{sample}/{sample}_cluster_analysis.csv", sample=config['SAMPLES']),
+  output:
+    sample_stats='output/summary/{0}_stats.csv'.format(config['STUDY']),
+    #cluster_stats='output/summary/{0}_clusters.xlsx'.format(config['STUDY'])
+  params:
+    samples=','.join(config['SAMPLES']),
+  threads: 1
+  resources:
+    mem_mb=32000,
+    time='04:00:00'
+  conda:
+    config['ENV']
+  log: "logs/all/collect.log"
+  shell:
+    r"""
+    mkdir -p output/summary
+    swibrid collect_results --samples {params.samples} --sample_stats {output.sample_stats} 2> {log}
+    """

@@ -381,6 +381,44 @@ vincendeau.data <- read.csv('../mouse_samples/20240425_vincendeau/output/summary
   dplyr::select(tidyselect::any_of(c('genotype','sample',columns$col))) 
 write.csv(vincendeau.data, 'data/vincendeau_data.csv')
 
+HTGTS.samples <- c("SRR2104731","SRR2104732","SRR2104733","SRR2104734","SRR2104735","SRR2104736","SRR2104737","SRR2104738",
+                   "SRR2104739","SRR2104740","SRR2104741","SRR2104742","SRR2104743","SRR2104744",
+                   "SRR6293456","SRR6293457","SRR6293458","SRR6293459","SRR6293460","SRR6293461","SRR6293462","SRR6293463",
+                   "SRR6293464","SRR6293465","SRR6293466","SRR6293467","SRR6293468","SRR6293469","SRR6293470","SRR6293471",
+                   "SRR6293472","SRR6293473","SRR6293474","SRR6293475","SRR6293476","SRR6293477","SRR6293478","SRR6293479")
+
+HTGTS.meta <- data.frame(celltype=c(rep('spleen',14),rep('CH12',24)),
+                         genotype=c(rep('WT',5),rep('Atm',3),rep('Trp53bp1',6),
+                                    rep('WT',6),rep('Atm',6),rep('Trp53bp1',6),rep('Lig4',6)),
+                         sample=HTGTS.samples) %>%
+  dplyr::mutate(genotype=factor(genotype, levels=c('WT','Atm','Trp53bp1','Lig4')))
+
+HTGTS.data <- read.csv('../mouse_samples/20241204_HTGTS/output/summary/HTGTS_stats.csv',
+                       header=1,row.names=1) %>%
+  tibble::rownames_to_column('sample') %>%
+  dplyr::inner_join(HTGTS.meta, by='sample') %>%
+  dplyr::mutate_all(~replace_na(.,0)) %>%
+  dplyr::select(tidyselect::any_of(c('genotype','celltype','sample',columns$col))) 
+write.csv(HTGTS.data, 'data/HTGTS_data.csv')
+
+HTGTS.homology <- lapply(HTGTS.samples, function(smp) read.csv(paste0('../mouse_samples/20241204_HTGTS/pipeline/',smp,'/',smp,'_cluster_analysis.csv'), header=1, row.names=1) %>%
+                           tibble::rownames_to_column('cluster') %>%
+                           dplyr::filter(cluster %in% (read.csv(paste0('../mouse_samples/20241204_HTGTS/pipeline/',smp,'/',smp,'_clustering.csv'),header=1,row.names=1) %>%
+                                                         dplyr::filter(filtered_cluster >= 0)  %>%
+                                                         dplyr::pull(unique(filtered_cluster)))) %>%
+                           dplyr::select(isotype,n_homology_switch) %>%
+                           dplyr::mutate(n_homology=cut(n_homology_switch, breaks=seq(-1,10),
+                                                        labels=seq(0,10))) %>%
+                           dplyr::group_by(isotype, n_homology) %>%
+                           dplyr::summarise(n=n()) %>%
+                           dplyr::group_by(isotype) %>%
+                           dplyr::mutate(frac=n/sum(n),
+                                         sample=smp)) %>%
+  do.call(rbind,.) %>%
+  dplyr::inner_join(HTGTS.meta, by='sample') %>%
+  dplyr::filter(!is.na(n_homology))
+write.csv(HTGTS.homology, 'data/HTGTS_homology.csv')
+
 vdj_samples <- read.csv('../human_samples/20230105_VDJ/20230113_mixcr/samples.txt',sep='\t',header=FALSE)[,2]
 VDJ_results <- lapply(vdj_samples, function(sample)
   read.csv(file.path('..','human_samples','20230105_VDJ','20230113_mixcr',
