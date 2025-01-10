@@ -31,6 +31,11 @@ contents:
         - `plot_clustering.sh` to create read plots for Fig. 1 and S2
         - `plot_breakpoints.sh` and `plot_breakpoint_stats.py` to create breakpoint matrix plot of Fig. 2A
 
+     - `external`: config files for public datasets (Vincendeau et al. and Panchakshari et al.)
+
+        - for Vincendeau et al., download data from SRA (PRJNA831666) into the Vincendeau subfolder and run `make_info.py` on every sample to create dummy files with primer locations
+        - for Panchakshari et al., use `get_data.sh` in the `HTGTS` folder to download data, collapse read mates with `bbmerge` and create info files
+
 - `data`: contains input data for paper figures (prepared using `prepare_data.R`
 
 - `paper_figures.Rmd`: R code to produce paper figures
