@@ -11,7 +11,7 @@ contents:
 
     - `mouse`: config files for mouse data
 
-        - download raw fastq files from SRA into `raw_data` and run `demultiplex_dataset.sh`; this will put fastq and `info.csv` files for individual samples into `input` and make it possible to run all samples in one go
+        - download raw fastq files from SRA (accession PRJNA1190672) into `raw_data` and run `demultiplex_dataset.sh`; this will put fastq and `info.csv` files for individual samples into `input` and make it possible to run all samples in one go
         - download mm10 genome from UCSC or elsewhere
         - download gencode M12 reference and use `swibrid prepare_annotation`
         - use `config.yaml` for running all mouse data
