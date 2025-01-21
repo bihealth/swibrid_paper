@@ -159,7 +159,7 @@ diagnosis_colors <- c('Control'='gray20','HD'='gray20',
                       'Subclass'='lightslategray','CVID'='coral1',
                       'ICOS'='#8DD3C7','Kabuki'='#BEBADA',
                       'IgG4def'='burlywood4','TNFRSF13B'='palegreen4',
-                      'Atypical'='gray40',
+                      'Atypical'='steelblue4',
                       'CVID-like'='#BC80BD','AID'='darkgoldenrod3',
                       'ATM'='#A65628','LIG4'='mediumpurple2',
                       'NIPBL'='#FCCDE5','BRCA1'='darkkhaki',
@@ -240,9 +240,9 @@ ggplot(cellswitch.data %>%
   labs(x='# Input cells', y='# Filtered clusters', color='Donor')
 ```
 
-show VDJ results: # clones depending on # of input cells
+show VDJ results: isotype frequencies
 
-```{r Fig1F, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
+```{r Fig1F, fig.width=2.4 * fig_scale, fig.height=1.4 * fig_scale}
 # bulk VDJ results for Fig. 1
 VDJ_results <- read.csv('data/VDJ_results.csv',header=1, row.names=1)
 
@@ -266,23 +266,19 @@ vdj_df <- rbind(swibrid_stats[,vdj_cols],vdj_stats[,vdj_cols]) %>%
   gather(metric,value, c(nclusters_final,alpha_ratio_clusters)) %>%
   dplyr::mutate(ncells=factor(as.character(as.integer(ncells)), levels=c('50000','100000')))
 
-vdj_df %>% 
-  dplyr::filter(metric=='nclusters_final') %>%
-  ggplot(aes(x=factor(gsub('000$','',ncells), levels=c('50','100')), y=value)) +
-  geom_boxplot(outlier.shape=NA, lwd=.5) +
-  geom_point(aes(color=gsub('Donor ','',Donor)),size=.5) +
-  facet_wrap(~method, ncol=2, scales='free_y') + 
-  my_theme() +
-  scale_color_brewer(palette='Set1') +
-  theme(strip.clip='off',
-        legend.position='none',
-        legend.background =element_rect(fill=NA)) +
-  labs(y='# Clones',x='# Cells / 1000',color='')
-```
+# vdj_df %>% 
+#   dplyr::filter(metric=='nclusters_final') %>%
+#   ggplot(aes(x=factor(gsub('000$','',ncells), levels=c('50','100')), y=value)) +
+#   geom_boxplot(outlier.shape=NA, lwd=.5) +
+#   geom_point(aes(color=gsub('Donor ','',Donor)),size=.5) +
+#   facet_wrap(~method, ncol=2, scales='free_y') + 
+#   my_theme() +
+#   scale_color_brewer(palette='Set1') +
+#   theme(strip.clip='off',
+#         legend.position='none',
+#         legend.background =element_rect(fill=NA)) +
+#   labs(y='# Clones',x='# Cells / 1000',color='')
 
-isotype ratios in VDJ vs. SWIBRID
-
-```{r Fig1G, fig.width=1.4 * fig_scale,fig.height=1.4 * fig_scale}
 vdj_df %>% 
   dplyr::mutate(ncells=factor(gsub('000$','k',ncells), levels=c('50k','100k')),
                 Donor=gsub('Donor ','',Donor)) %>%
@@ -739,7 +735,7 @@ vincendeau.data <- read.csv('data/vincendeau_data.csv', header=1, row.names=1)  
   tibble::column_to_rownames('Sample')
 
 cols.here.mouse <- c('frac_breaks_inversions',
-                     'n_homology_switch',
+                     'frac_breaks_intra',
                      'mean_cluster_size_downsampled')
 
 cohort.data <- rbind(mouse.data %>%
@@ -759,15 +755,17 @@ cohort.data <- rbind(mouse.data %>%
   dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural'))
 
 cohort.data %>%
-  ggplot(aes(x=Cohort, y=value, fill=Cohort)) + 
-  geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25, fill='gray80') + 
+  ggplot(aes(x=Cohort, y=value, fill=species)) + 
+  geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) + 
   geom_point(position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) + 
   my_theme() +
   coord_cartesian(clip='off') +
-  #annotate('text',x=5.5,y=-2,label='Vincendeau et al.', size=2) +
+  #annotate('text',x=1.5,y=Inf,label='SWIBRID', size=2) +
+  #annotate('text',x=5.5,y=Inf,label='Vincendeau et al.', size=2) +
   facet_wrap(~variable, ncol=3, switch='y', scales='free_y') +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-        legend.position='none') +
+        legend.position=c(.2,.99)) +
+  scale_fill_manual(values=c('mouse tissue'='gray80','Vincendeau'='#cca9e6')) +
   scale_x_discrete(breaks=c('lymph node','splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
                    labels=c('Lymph node','Splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
                    limits=c('lymph node','splenocytes','','WT','Xlf','Shld1','Shld1_Xlf'), drop=FALSE) +
@@ -795,15 +793,17 @@ cohort.data <- rbind(mouse.data %>%
   dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural'))
 
 cohort.data %>%
-  ggplot(aes(x=Cohort, y=value, fill=Cohort)) + 
-  geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25, fill='gray80') + 
+  ggplot(aes(x=Cohort, y=value, fill=species)) + 
+  geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) + 
   geom_point(position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) + 
   my_theme() +
   coord_cartesian(clip='off') +
-  #annotate('text',x=5.5,y=-2,label='Vincendeau et al.', size=2) +
+  #annotate('text',x=1.5,y=Inf,label='SWIBRID', size=2) +
+  #annotate('text',x=5.5,y=Inf,label='Vincendeau et al.', size=2) +
   facet_wrap(~variable, ncol=3, switch='y', scales='free_y') +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-        legend.position='none') +
+        legend.position=c(.2,.99)) +
+  scale_fill_manual(values=c('mouse tissue'='gray80','Vincendeau'='#cca9e6')) +
   scale_x_discrete(breaks=c('lymph node','splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
                    labels=c('Lymph node','Splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
                    limits=c('lymph node','splenocytes','','WT','Xlf','Shld1','Shld1_Xlf'), drop=FALSE) +
@@ -1448,9 +1448,9 @@ hm1 <- Heatmap(t(CH12.X[samples,gsub('_switch|_downsampled','',CH12.cols)]),
                                                 show_annotation_name=TRUE,
                                                 show_legend=c(TRUE,FALSE),
                                                 simple_anno_size=unit(2,'mm'),
-                                                annotation_name_gp=gpar(fontsize=8),
+                                                annotation_name_gp=gpar(fontsize=7),
                                                 annotation_legend_param=list(labels_gp=gpar(fontsize=7),
-                                                                             title_gp=gpar(fontsize=8),
+                                                                             title_gp=gpar(fontsize=7),
                                                                              legend_width=unit(2,'mm'),
                                                                              legend_height=unit(2,'mm'),
                                                                              legend_direction="horizontal",
@@ -1461,7 +1461,7 @@ hm1 <- Heatmap(t(CH12.X[samples,gsub('_switch|_downsampled','',CH12.cols)]),
                row_names_gp =gpar(fontsize = 7),
                row_split = columns %>% tibble::column_to_rownames('col') %>% .[CH12.cols, 'category'], 
                heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
-                                         title_gp=gpar(fontsize=8),
+                                         title_gp=gpar(fontsize=7),
                                          legend_direction = "horizontal", 
                                          legend_width=unit(20,'mm'),
                                          legend_height=unit(2,'mm')),
@@ -1522,12 +1522,12 @@ ggplot(tmp, aes(x=prediction,y=sample,
   scale_fill_gradient(low='white',high='steelblue3') +
   scale_color_manual(values=c(black='black',green='darkgreen',red='red3')) +
   my_theme() +
-  scale_y_discrete(labels=ifelse(grepl('\\.20|\\.27|\\.14|\\.01|\\.04',tmp$sample),"*","")) +
+  #scale_y_discrete(labels=ifelse(grepl('\\.20|\\.27|\\.14|\\.01|\\.04',tmp$sample),"*","")) +
   theme(legend.position='none',
         axis.ticks.y = element_blank(),
-        #axis.text.y = element_blank(),
+        axis.text.y = element_blank(),
         axis.text.x=element_text(angle=90, hjust=1, vjust=.5)) +
-  labs(x='',y='36 new samples (* 25ng IL4)')
+  labs(x='',y='36 new samples') # (* 25ng IL4)')
 ```
 
 show the ridge coefficients 
@@ -1946,16 +1946,17 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='testing'),
        color='',shape='',fill='',alpha='')
 ```
 
-do ridge regression from training to testing or validation data (take out subclass and atypical)
+do ridge regression from training to testing or validation data (take out subclass and atypical, as well as biol replicates of training)
 
 ```{r Fig4G, fig.width=2. * fig_scale, fig.height=1.5 * fig_scale}
 set.seed(1)
-train.here <- train & !(human.meta[train,'Diagnosis'] %in% c('Subclass','Atypical'))
+train.here <- train & !(human.meta[,'Diagnosis'] %in% c('Subclass','Atypical')) 
+test.here <- test & !(human.meta[, 'Donor'] %in% FB_train_donors)
 cv_model <- cv.glmnet(as.matrix(human.X[train.here,]), human.meta[train.here,'status']!='Control', alpha = 0, family='binomial')
 mod <- glmnet(as.matrix(human.X[train.here,]), human.meta[train.here,'status']!='Control', alpha = 0, family = "binomial",
                 lambda = cv_model$lambda.min)
-pred_1 <- predict(mod, type = "response", newx=as.matrix(human.X[test,]))
-ROC_1 <- roc(human.meta[test,'status']!='Control', pred_1)
+pred_1 <- predict(mod, type = "response", newx=as.matrix(human.X[test.here,]))
+ROC_1 <- roc(human.meta[test.here,'status']!='Control', pred_1)
 
 pred_2 <- predict(mod, type = "response", newx=as.matrix(human.X[validation,]))
 ROC_2 <- roc(human.meta[validation,'status']!='Control', pred_2)
@@ -1974,7 +1975,7 @@ ggplot(FB_res, aes(x=specificity,y=sensitivity,color=model)) +
   geom_abline(slope=1,intercept=1,linewidth=.25,linetype='dashed') +
   my_theme() +
   guides(color=guide_legend(ncol=1)) +
-  scale_color_manual(values=c('black','blue3')) +
+  scale_color_manual(values=c('steelblue4','lightsteelblue')) +
   theme(legend.position=c(.5,.2)) +
   labs(color='',linetype='')
 ```
@@ -2019,11 +2020,11 @@ data.frame(acc=unlist(sample.CV),
   labs(x='',y='Accuracy')
 ```
 
-(average accuracy is `r mean(unlist(sample.CV))`)
+(average accuracy is `r mean(unlist(sample.CV))`) 
 
 heatmap
 
-```{r Fig4H, fig.width=5.5 * fig_scale, fig.height=5.5 * fig_scale}
+```{r Fig4H, fig.width=5 * fig_scale, fig.height=5.5 * fig_scale}
 FB.samples <- row.names(FB.data.pooled)[grepl('FB',FB.data.pooled$Donor)]
 FB.X <- FB.data.pooled[FB.samples, selected.cols] %>%
   dplyr::mutate_if(is.numeric, scale)
@@ -2051,15 +2052,15 @@ dend <- hclust(dist(FB.X))
 #                                                     row.names(FB.X))),agglo.FUN=mean)
 
 class_df <- data.frame(Class=plyr::revalue(as.character(cutree(dend, k = 4)),
-                                           c('2'='Cluster3',
-                                             '3'='Cluster1',
-                                             '1'='Cluster2',
-                                             '4'='Cluster2')),
+                                           c('2'='Cluster1',
+                                             '3'='Cluster2',
+                                             '1'='Cluster3',
+                                             '4'='Cluster3')),
                        name=row.names(FB.X))
 
-class_colors <- c('Cluster3'=diagnosis_colors[['Control']],
-                  'Cluster1'=cat_cols[['Structural']],
-                  'Cluster2'=cat_cols[['Diversity']])
+class_colors <- c('Cluster1'=diagnosis_colors[['Control']],
+                  'Cluster2'=cat_cols[['Structural']],
+                  'Cluster3'=cat_cols[['Diversity']])
 
 hm1 <- Heatmap(t(FB.X),
                col=colorRamp2(c(-2,0, 2), c("blue",'gray90', "red")),
@@ -2084,9 +2085,11 @@ hm1 <- Heatmap(t(FB.X),
                                                 simple_anno_size=unit(2,'mm'),
                                                 annotation_legend_param=list(title_gp=gpar(fontsize=7),
                                                                              labels_gp=gpar(fontsize=7),
+                                                                             legend_height = unit(5, "mm"),
+                                                                             legend_width = unit(3, "mm"),
                                                                              grid_height = unit(3, "mm"),
                                                                              grid_width = unit(3, "mm")),
-                                                annotation_name_gp=gpar(fontsize=8),
+                                                annotation_name_gp=gpar(fontsize=7),
                                                 col=list('Diagnosis'=diagnosis_colors,
                                                          'Class'=class_colors,
                                                          'Age'=colorRamp2(c(20,50,80),c("yellow2","orange2","coral3")),
@@ -2097,8 +2100,12 @@ hm1 <- Heatmap(t(FB.X),
                row_dend_width = unit(7, "mm"),
                row_split = columns %>% tibble::column_to_rownames('col') %>% .[selected.cols, 'category'], 
                heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
-                                         title_gp=gpar(fontsize=8),
-                                         legend_height=unit(10,'mm')),
+                                         title_gp=gpar(fontsize=7),
+                                         at=c(-2,0,2),
+                                         grid_height=unit(4, 'mm'),
+                                         grid_width=unit(3, 'mm'),
+                                         legend_height=unit(5,'mm'),
+                                         legend_width=unit(3,'mm')),
                row_title=NULL,
                name='z-score')  
 
@@ -2113,8 +2120,11 @@ hm3 <- Heatmap(t(pca_hm[,c('PC1','PC2')]),
                row_names_gp =gpar(fontsize=7),
                row_dend_width = unit(7, "mm"),
                heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
-                                         title_gp=gpar(fontsize=8),
-                                         legend_height = unit(10, "mm")),
+                                         title_gp=gpar(fontsize=7),
+                                         grid_height=unit(5, 'mm'),
+                                         grid_width=unit(3, 'mm'),
+                                         legend_height = unit(5, "mm"),
+                                         legend_width = unit(3, "mm")),
                row_title=NULL,
                name='PC')
 
@@ -2217,7 +2227,6 @@ box plots for selected features
 
 ```{r Fig4J, fig.width=5.25 * fig_scale, fig.height=1.7 * fig_scale}
 features.here <- c('frac_clusters_SG1',
-                   'frac_clusters_SG2',
                    'mean_cluster_size_downsampled',
                    'n_homology_switch',
                    'n_untemplated_switch',
@@ -2242,24 +2251,31 @@ tmp <- cbind(rbind(FB.data.pooled[,features.here],
   dplyr::mutate(col=factor(gsub("_downsampled|_switch",'',col),
                            levels=gsub("_downsampled|_switch","",features.here)))
 
-ggplot(tmp, aes(x=group,y=value,fill=group)) +
+ggplot(tmp, aes(x=ifelse(grepl('Cluster',group),as.numeric(group),1+as.numeric(group)),
+                y=value,fill=group)) +
   geom_boxplot(outlier.shape=NA, lwd=.5) +
   geom_jitter(width=.1,height=0,size=.5) +
-  stat_compare_means(comparisons=list(c('Cluster1','Cluster3'),
-                                      c('Cluster1','Cluster2'),
-                                      c('Cluster2','Cluster3')),
-                     method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) +
-  stat_compare_means(comparisons=list(c('Control','ATM'),
-                                      c('Control','BRCA1')),
-                     method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2, vjust=.5) +
+  #annotate('text',x=2,y=Inf,label='', size=2) +
+  #annotate('text',x=6,y=Inf,label='validation', size=2) +
+  # stat_compare_means(comparisons=list(c('Cluster1','Cluster3'),
+  #                                     c('Cluster1','Cluster2'),
+  #                                     c('Cluster2','Cluster3')),
+  #                    method='wilcox.test',label = "p.signif", size=2, vjust=.5) +
+  # stat_compare_means(comparisons=list(c('Control','ATM'),
+  #                                     c('Control','BRCA1')),
+  #                    method='wilcox.test',label = "p.signif", size=2, vjust=.5) +
+  stat_compare_means(comparisons=list(c(1,2),c(1,3),c(2,3)),
+                     method='wilcox.test',label = "p.signif", size=2, vjust=.5) +
+  stat_compare_means(comparisons=list(c(5,6),c(5,7),c(6,7)),
+                     method='wilcox.test',label = "p.signif", size=2, vjust=.5) +
   facet_wrap(.~col,ncol=length(features.here),scales='free_y') +
   my_theme() +
   coord_cartesian(clip='off') +
   scale_fill_manual(values=c(diagnosis_colors,class_colors)) +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=.5),
         legend.position='none') +
-  scale_x_discrete(breaks=c('Cluster1','Cluster2','Cluster3','Control','ATM','BRCA1'),
-                   labels=c('Cluster1','Cluster2','Cluster3','Control','ATM','BRCA1')) +
+  scale_x_continuous(breaks=c(1,2,3,5,6,7),
+                     labels=c('Cluster1','Cluster2','Cluster3','Control','ATM','BRCA1')) +
   labs(x='',y='', color='Diagnosis')
 ```
 
@@ -2294,7 +2310,7 @@ FB.data.pooled[FB.samples, ] %>%
   geom_jitter(aes(color=status),width=.1, size=.5) +
   stat_compare_means(comparisons=list(c('Negative','Positive'),
                                       c('Positive','No data')),
-                     method='wilcox.test', label = "p.signif", hide.ns=TRUE, size=2, vjust=0) +
+                     method='wilcox.test', label = "p.signif", size=2, vjust=0) +
   facet_grid(feature ~ vacc, switch='y') + 
   my_theme() +
   scale_fill_manual(values=c('Negative'='red3','Positive'='gray')) +
@@ -2345,7 +2361,7 @@ FB.data.pooled[FB.samples, ] %>%
 
 check aggregated scores
 
-```{r FigS4F, fig.width=5.5 * fig_scale, fig.height=3.5 * fig_scale}
+```{r FigS4F, fig.width=4.5 * fig_scale, fig.height=3.5 * fig_scale}
 FB.X.aggregated <-  FB.data.pooled[FB.samples, selected.cols] %>%
   dplyr::mutate_if(is.numeric, scale) %>%
   tibble::rownames_to_column('sample') %>%
@@ -2364,15 +2380,14 @@ FB.X.aggregated <-  FB.data.pooled[FB.samples, selected.cols] %>%
 
 FB.meta.aggregated <- FB.meta[,c('Diagnosis','Sex','Age',
                                  'Donor','Timepoint'),drop=FALSE] %>% 
-  dplyr::filter(!(Diagnosis %in% c('control','subclass'))) %>%
+  dplyr::filter(!(Diagnosis %in% c('Control','Subclass','Atypical'))) %>%
   tibble::remove_rownames() %>%
   dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(Donor,'_',Timepoint)))) %>%
   dplyr::left_join(class_df,by='name') %>%
   dplyr::select(-c(Donor,Timepoint)) %>%
   tibble::column_to_rownames('name') %>%
   dplyr::mutate(Diagnosis=factor(Diagnosis,
-                                 levels=c('Control','Subclass','Atypical',
-                                          'CVID','ICOS','Kabuki',
+                                 levels=c('CVID','ICOS','Kabuki',
                                           'AID','IgG4def','NFKB2','PI3K','TNFRSF13B')))
 
 samples <- row.names(FB.meta.aggregated[!(FB.meta.aggregated$Diagnosis  %in% c('Control','Subclass','Atypical')),])
@@ -2396,9 +2411,12 @@ hm2 <- Heatmap(t(FB.X.aggregated[samples,]),
                                                 simple_anno_size=unit(2,'mm'),
                                                 annotation_legend_param=list(title_gp=gpar(fontsize=7),
                                                                              labels_gp=gpar(fontsize=7),
+                                                                             legend_height = unit(5, "mm"),
+                                                                             legend_width = unit(3, "mm"),
+                                                                             title_position = "leftcenter-rot",
                                                                              grid_height = unit(3, "mm"),
                                                                              grid_width = unit(3, "mm")),
-                                                annotation_name_gp=gpar(fontsize=8),
+                                                annotation_name_gp=gpar(fontsize=7),
                                                 col=list('Diagnosis'=diagnosis_colors,
                                                          'Class'=class_colors,
                                                          'Age'=colorRamp2(c(20,50,80),c("yellow2","orange2","coral3")),
@@ -2408,10 +2426,15 @@ hm2 <- Heatmap(t(FB.X.aggregated[samples,]),
                row_names_gp =gpar(fontsize = 7),
                row_dend_width = unit(7, "mm"),
                heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
-                                         title_gp=gpar(fontsize=8),
-                                         legend_height=unit(10,'mm')),
+                                         title_gp=gpar(fontsize=7),
+                                         at=c(0,1,2),
+                                         title_position = "leftcenter-rot",
+                                         grid_height=unit(4, 'mm'),
+                                         grid_width=unit(3, 'mm'),
+                                         legend_height=unit(5,'mm'),
+                                         legend_width=unit(3,'mm')),
                row_title=NULL,
-               name='category score')  
+               name='Category score')  
 
 hm2
 ```
