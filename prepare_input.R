@@ -370,8 +370,8 @@ FB.data.pooled <- human_results %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::mutate(num_variants_somatic=num_variants * (1 - frac_variants_germline)) %>%
   dplyr::select(tidyselect::any_of(c('Donor','Diagnosis','Timepoint','Sample_donor','Sex','Age','Sample',
-                                     'splenomegaly','lymphoproliferation','Tetanus','Diphteria','PnPS','lung',
-                                     'complication','EUROclass','pct_B','pct_IgA','pct_IgG',columns$col)))
+                                     'Tetanus','Diphteria','PnPS','lung',
+                                     'pct_B','pct_IgA','pct_IgG',columns$col)))
 write.csv(FB.data.pooled, 'data/FB_data_pooled.csv')
 
 vincendeau.data <- read.csv('../mouse_samples/20240425_vincendeau/output/summary/20240425_vincendeau_samples_stats.csv',
