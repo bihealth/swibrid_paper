@@ -153,7 +153,7 @@ HD_sample_sheet <- rbind(read.csv('../sodar/2023_OC/a_2023_OC.txt',
                            dplyr::left_join(read.csv('../sodar/2023_OC/s_2023_OC.txt',sep='\t',header=1),
                                             by='Sample.Name') %>%
                            dplyr::mutate(Donor=as.character(Source.Name),
-                                         Sample=Extract.Name.1,
+                                         Sample=Comment.Extract.Name.,
                                          Batch=as.character(Parameter.Value.Batch.),
                                          QC=Parameter.Value.QC.,
                                          Age=Characteristics.Age.,
@@ -169,7 +169,7 @@ HD_sample_sheet <- rbind(read.csv('../sodar/2023_OC/a_2023_OC.txt',
                            dplyr::mutate(Donor=Source.Name,
                                          Batch=as.character(Parameter.Value.Batch.),
                                          QC=Parameter.Value.QC.,
-                                         Sample=Extract.Name.1,
+                                         Sample=Comment.Extract.Name.,
                                          Age=Characteristics.Age.,
                                          Sex=Characteristics.Sex.,
                                          Cohort='C1',
@@ -200,7 +200,7 @@ HD_sample_sheet <- rbind(read.csv('../sodar/2023_OC/a_2023_OC.txt',
                                          Age=Parameter.Value.Age.,
                                          Sex=Characteristics.Sex.,
                                          Diagnosis=Characteristics.Diagnosis.,
-                                         Sample=Extract.Name.1,
+                                         Sample=Comment.Extract.Name.,
                                          Cohort='C2',
                                          Sequencing=Parameter.Value.Sequencing.method.) %>%
                            dplyr::filter(Diagnosis=='control',grepl('2023',Sample)) %>%
@@ -255,7 +255,7 @@ CH12_sample_sheet <- read.csv('../sodar/2022_CH12/a_2022_CH12.txt',
   dplyr::mutate(Genotype=Characteristics.Genotype.,
                 Batch=as.character(Parameter.Value.Batch.),
                 QC=Parameter.Value.QC.,
-                Sample=Extract.Name.1) %>%
+                Sample=Comment.Extract.Name.) %>%
   dplyr::select(Genotype,Batch,Sample,QC)
 
 CH12.data <- mouse_results %>%
@@ -281,7 +281,7 @@ mouse_sample_sheet <- read.csv('../sodar/2019_tests/a_2019_test.txt',
   dplyr::mutate(material=gsub(" KO",'',Parameter.Value.Template.),
                 Batch=as.character(Parameter.Value.Batch.),
                 QC=Parameter.Value.QC.,
-                Sample=Extract.Name.1,
+                Sample=Comment.Extract.Name.,
                 Genotype='WT') %>%
   dplyr::filter(Batch=='20240817') %>%
   dplyr::select(material,Batch,Genotype,Sample,QC)
@@ -313,7 +313,7 @@ QP_sample_sheet <- read.csv('../sodar/2019_QianPan/a_2019_QianPan.txt',
                 Age=Characteristics.Age.,
                 Batch=as.character(Parameter.Value.Batch.),
                 QC=Parameter.Value.QC.,
-                Sample=Extract.Name.1) %>%
+                Sample=Comment.Extract.Name.) %>%
   dplyr::select(Donor,Diagnosis,Sex,Age,Batch,QC,Sample)
 
 QP.data <- human_results %>%
@@ -349,7 +349,7 @@ FB_sample_sheet <- read.csv('../sodar/2023_FB/a_2023_FB.txt',
                 pct_IgG=Parameter.Value.pct_IgG.,
                 Batch=as.character(Parameter.Value.Batch.),
                 QC=Parameter.Value.QC.,
-                Sample=Extract.Name.1) %>%
+                Sample=Comment.Extract.Name.) %>%
   dplyr::distinct(Donor,Sample_donor,Diagnosis,QC,Sample,.keep_all = TRUE)
 
 FB.data <- human_results %>%
@@ -452,7 +452,7 @@ GEO_sample_sheet <- rbind(read.csv('../sodar/2022_CH12/a_2022_CH12.txt',
                                           barcode=Parameter.Value.Barcode.,
                                           Polymerase=Parameter.Value.DNA.polymerase.,
                                           Activation=Parameter.Value.activation.,
-                                          Sample=Extract.Name.1) %>%
+                                          Sample=Comment.Extract.Name.) %>%
                             dplyr::filter(!grepl("20220411|20220810|20220618",Batch)) %>%
                             dplyr::select(Sample,material,Genotype,barcode,PCR_cycles,PCR_Volume,primers,barcode,Polymerase,Activation,Batch),
                           read.csv('../sodar/2019_tests/a_2019_test.txt',
@@ -467,7 +467,7 @@ GEO_sample_sheet <- rbind(read.csv('../sodar/2022_CH12/a_2022_CH12.txt',
                                           barcode=Parameter.Value.Barcode.,
                                           Polymerase=Parameter.Value.DNA.polymerase.,
                                           Activation="",
-                                          Sample=Extract.Name.1,
+                                          Sample=Comment.Extract.Name.,
                                           Genotype='WT') %>%
                             dplyr::filter(Batch=='20240817') %>%
                             dplyr::select(Sample,material,Genotype,barcode,PCR_cycles,PCR_Volume,primers,barcode,Polymerase,Activation,Batch)) %>%
