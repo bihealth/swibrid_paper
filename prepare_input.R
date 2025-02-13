@@ -355,14 +355,14 @@ FB_sample_sheet <- read.csv('../sodar/2023_FB/a_2023_FB.txt',
 FB.data <- human_results %>%
   tibble::rownames_to_column('Sample') %>%
   dplyr::inner_join(FB_sample_sheet %>% dplyr::distinct(Donor, Diagnosis, Timepoint, Sample_donor, Sex, Age, Sample, QC, Batch), by='Sample') %>%
-  dplyr::filter(nreads_final >= 500, QC=='PASS') %>%
+  dplyr::filter(nreads_final >= 500, QC=='PASS', grepl('FB', Donor)) %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('Donor','Diagnosis','Timepoint','Sample_donor','Sex','Age','Sample','Batch',columns$col))) 
 write.csv(FB.data, 'data/FB_data.csv')
 
 FB.data.pooled <- human_results %>%
   tibble::rownames_to_column('Sample') %>%
-  dplyr::filter(grepl('pooled_',Sample)) %>%
+  dplyr::filter(grepl('pooled_FB',Sample)) %>%
   dplyr::mutate(Sample_donor=gsub('pooled_','',Sample)) %>%
   dplyr::inner_join(FB_sample_sheet %>% dplyr::distinct(Donor, Diagnosis, Timepoint, Sample_donor, Sex, Age, 
                                                         splenomegaly, lymphoproliferation, Tetanus, Diphteria, PnPS, lung,
