@@ -302,6 +302,65 @@ vdj_df %>%
   labs(y='Fraction IGHA SWIBRID',x='Fraction IGHA VDJ',shape='# cells')
 ```
 
+check reproducibility of clones in the cell switch experiment
+
+```{r FigS1X, fig.width=1.75 * fig_scale, fig.height=1.5 * fig_scale}
+meta_clustering <- lapply(c('21084','21085','21086','mixed'), 
+                          function(donor) 
+                            lapply(if (donor=='mixed') seq(1,5) else seq(1,3),
+                                   function(rep)
+                                     lapply(c(50000,100000), function(nc) 
+                                     {
+                                       fname <- paste0('../human_samples/20240307_hg38_results/cellswitch_combined/',
+                                                       donor,'_',rep,'_',format(nc,scientific=FALSE),'_meta_clustering.csv')
+                                       if (file.exists(fname)) 
+                                         read.csv(fname, header=1,row.names=1) %>%
+                                         dplyr::group_by(sample, meta_cluster) %>%
+                                         dplyr::summarise(nreads=n()) %>%
+                                         dplyr::ungroup() %>%
+                                         dplyr::group_by(meta_cluster) %>%
+                                         dplyr::mutate(n_samples=n_distinct(sample[nreads > 0 * sum(nreads)])) %>%
+                                         dplyr::ungroup() %>%
+                                         dplyr::group_by(sample) %>%
+                                         dplyr::mutate(cluster_size=cut(nreads/sum(nreads), c(0,.0001,.001,.01,.1,1), 
+                                                                        labels=c('<.01%','<.1%','<1%','<10%','>10%'))) %>%
+                                         dplyr::mutate(Donor=donor,
+                                                       ncells=nc,
+                                                       replicate=rep)
+                                     }) %>%
+                                     do.call(rbind, .)) %>%
+                            do.call(rbind, .)) %>%
+  do.call(rbind, .)
+
+ggplot(meta_clustering %>%
+         dplyr::group_by(Donor,replicate,ncells) %>%
+         dplyr::summarise(frac_clusters=mean(n_samples > 1)) %>%
+         dplyr::ungroup() %>% 
+         dplyr::distinct(Donor, ncells, frac_clusters) %>%
+         dplyr::mutate(mixing=ifelse(Donor=='mixed','inter-donor','intra-donor'),
+                       Donor=plyr::revalue(Donor, c('21084'='A',
+                                                    '21085'='B',
+                                                    '21086'='C')),
+                       ncells=factor(ifelse(ncells==50000,'50k','100k'),levels=c('50k','100k'))),
+         # dplyr::group_by(Donor, ncells) %>%
+         # dplyr::summarise(mean_frac_clusters=mean(frac_clusters),
+         #                  se_frac_clusters=sd(frac_clusters)/sqrt(n())),
+       aes(x=ncells,y=100*frac_clusters, fill=mixing)) + 
+  geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA) +
+  geom_jitter(aes(color=Donor, group=mixing), position=position_jitterdodge(dodge.width = .8, jitter.width=.05), size=1) +
+  #geom_line(aes(group=Donor)) +
+  # geom_errorbar(aes(ymin=100*(mean_frac_clusters-se_frac_clusters),
+  #                   ymax=100*(mean_frac_clusters+se_frac_clusters)), width=0,
+  #               position=position_dodge(width=.8)) +
+  my_theme() +
+  scale_fill_manual(values=c('gray','lightcyan')) +
+  #scale_color_manual(values=c('gray','coral')) +
+  #scale_color_brewer(palette='Set1') +
+  scale_color_manual(values=setNames(brewer.pal(3,'Set1'),c('A','B','C')),na.value='gray20') +
+  #coord_cartesian(ylim=c(0,100)) +
+  labs(x='# of cells',y='% shared clusters in pair', fill='pair', color='donor')
+```
+
 # Figure 2 + supplements 
 
 fraction of explained variance for different feature groups in HD cohort
@@ -937,17 +996,21 @@ plots <- lapply(comparisons, function(x)
                    se2=paste0('se_',x[[2]])) %>%
     dplyr::mutate(tstat=abs(mean2-mean1)/(sqrt(se2**2+se1**2)),
                   pval=dt(tstat,4)) %>%
+    dplyr::mutate(padj=p.adjust(pval, method='BH'),
+                  sig=ifelse(padj < .05, 'sig','ns')) %>%
     ggplot(aes(x=mean1,y=mean2)) +
     geom_abline(slope=1,intercept=0,color='gray',linewidth=.5) +
-    geom_point(aes(color=variable,shape=variable,size=ifelse(pval < .05,'sig','ns'))) + 
+    geom_point(aes(color=variable, shape=variable, size=sig, alpha=sig)) + 
     stat_cor(method = "pearson", aes(label=..r.label..), size=2.5, show.legend=FALSE) +
     geom_errorbar(aes(ymin=mean2-se2,
                       ymax=mean2+se2,
-                      color=variable),
+                      color=variable,
+                      alpha=sig),
                   size=.25) +
     geom_errorbarh(aes(xmin=mean1-se1,
                        xmax=mean1+se1,
-                       color=variable),
+                       color=variable,
+                       alpha=sig),
                    size=.25) +
     my_theme() +
     labs(color='',shape='') +
@@ -960,6 +1023,7 @@ plots <- lapply(comparisons, function(x)
                        labels=cols_shapes %>%
                          dplyr::pull(variable_name)) +
     scale_size_manual(values=c('sig'=2,'ns'=.5),guide='none') +
+    scale_alpha_manual(values=c('sig'=1,'ns'=.25),guide='none') +
     guides(color=guide_legend(ncol=5),
            shape=guide_legend(ncol=5)) +
     labs(x=x[[1]],y=x[[2]],fill='',color='',size=''))
@@ -1016,18 +1080,22 @@ plots <- lapply(comparisons, function(x)
                    se1=paste0('se_',x[[1]],'_',x[[2]]),
                    se2=paste0('se_',x[[1]],'_',x[[3]])) %>%
     dplyr::mutate(tstat=abs(mean2-mean1)/(sqrt(se2**2+se1**2)),
-                  pval=dt(tstat,4)) %>%
+                  pval=dt(tstat,4),
+                  padj=p.adjust(pval, method='BH'),
+                  sig=ifelse(padj < .05, 'sig','ns')) %>%
     ggplot(aes(x=mean1,y=mean2)) +
     geom_abline(slope=1,intercept=0,color='gray',linewidth=.5) +
-    geom_point(aes(color=variable,shape=variable,size=ifelse(pval < .05,'sig','ns'))) + 
+    geom_point(aes(color=variable,shape=variable,size=sig, alpha=sig)) + 
     stat_cor(method = "pearson", aes(label=..r.label..), size=2.5, show.legend=FALSE, label.y.npc = 'bottom') +
     geom_errorbar(aes(ymin=mean2-se2,
                       ymax=mean2+se2,
-                      color=variable),
+                      color=variable,
+                      alpha=sig),
                   size=.25) +
     geom_errorbarh(aes(xmin=mean1-se1,
                        xmax=mean1+se1,
-                       color=variable),
+                       color=variable,
+                       alpha=sig),
                    size=.25) +
     my_theme() +
     labs(color='',shape='') +
@@ -1040,6 +1108,7 @@ plots <- lapply(comparisons, function(x)
                        labels=cols_shapes %>%
                          dplyr::pull(variable_name)) +
     scale_size_manual(values=c('sig'=2,'ns'=.5),guide='none') +
+    scale_alpha_manual(values=c('sig'=1,'ns'=.2),guide='none') +
     guides(color=guide_legend(ncol=4),
            shape=guide_legend(ncol=4)) +
     labs(x=x[[2]],y=x[[3]],title=x[[1]],fill='',color='',size=''))
@@ -1051,6 +1120,7 @@ plot_grid(plot_grid(plotlist=lapply(plots, function(x) x + theme(legend.position
 
 ```{r FigS3C, fig.width=3.75 * fig_scale, fig.height=2.5 * fig_scale}
 library(gtools)
+library(rstatix)
 
 cols.here.HTGTS <- c('n_homology_switch',
                      'frac_breaks_inversions',
@@ -1074,6 +1144,7 @@ HTGTS.data %>%
   my_theme() +
   coord_cartesian(clip='off') +
   stat_compare_means(ref.group='WT',method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2) +
+  #stat_pvalue_manual(pvals, label = "p.adj.signif", tip.length = 0.01) +
   ggh4x::facet_grid2(celltype~variable, switch='y', scales='free_y', independent='y', strip=ggh4x::strip_vanilla(clip='off')) +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
         legend.position='none') +
@@ -1865,6 +1936,39 @@ ggplot(FB_res, aes(x=specificity,y=sensitivity,color=model)) +
   labs(color='',linetype='')
 ```
 
+show the ridge coefficients
+
+```{r FigS4X2, fig.width=2 * fig_scale, fig.height=2.5 * fig_scale}
+tmp <- data.frame(coef=coef(mod)[,'s0']) %>%
+  dplyr::filter(rowSums(abs(.)) > 0) %>%
+  dplyr::slice_max(rowSums(abs(.)),n=20) %>%
+  dplyr::arrange(rowSums(abs(.))) %>%
+  tibble::rownames_to_column('col') %>%
+  dplyr::filter(col %in% columns$col) 
+
+col.order <- gsub('_downsampled|_switch','',tmp$col[order(tmp$coef)])
+
+tmp <- tmp %>%
+  dplyr::mutate(col=gsub('_downsampled|_switch','',col),
+                col=factor(col, levels=col.order)) 
+
+anno_grob_y <- grid::rectGrob(y=1:length(tmp$col), x=0, gp=gpar(col=NA, fill=col_cols[rev(levels(tmp$col))], alpha=.5))
+
+tmp %>%
+  dplyr::mutate(col=factor(col, levels=rev(levels(tmp$col)))) %>%
+  ggplot(aes(x=1, y=col, fill=coef, label=round(coef,2))) + 
+  geom_tile() +
+  scale_fill_gradient2(low='pink2',high='steelblue3', mid='white', breaks=c(-.05, 0, .05)) +
+  my_theme() +
+  coord_cartesian(clip='off') +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x = element_blank(),
+        legend.position='right',
+        legend.direction='vertical') +
+  annotation_custom(grob=anno_grob_y, ymin = 0, ymax = 1, xmin = -3.5, xmax = 4) +
+  labs(x='',y='') 
+```
+
 evaluate ridge regression by cross-validation
 
 ```{r FigS4X, fig.width=.8 * fig_scale, fig.height=1 * fig_scale, include=FALSE}
@@ -1997,6 +2101,46 @@ hm1 <- Heatmap(t(FB.X),
                row_title=NULL,
                name='z-score')  
 
+
+hm2 <- Heatmap(t(FB.X),
+               col=colorRamp2(c(-2,0, 2), c("blue",'gray90', "red")),
+               #cluster_columns=dend,
+               column_split = grepl('09|32', row.names(FB.X)), 
+               column_title = NULL,
+               cluster_rows=TRUE,
+               show_row_names=TRUE,
+               show_column_names=TRUE,
+               show_row_dend=TRUE,
+               top_annotation=HeatmapAnnotation(df=hm_meta,
+                                                show_annotation_name=TRUE,
+                                                show_legend=TRUE,
+                                                simple_anno_size=unit(2,'mm'),
+                                                annotation_legend_param=list(title_gp=gpar(fontsize=7),
+                                                                             labels_gp=gpar(fontsize=7),
+                                                                             legend_height = unit(5, "mm"),
+                                                                             legend_width = unit(3, "mm"),
+                                                                             grid_height = unit(3, "mm"),
+                                                                             grid_width = unit(3, "mm")),
+                                                annotation_name_gp=gpar(fontsize=7),
+                                                col=list('Diagnosis'=diagnosis_colors,
+                                                         'Class'=class_colors,
+                                                         'Age'=colorRamp2(c(20,50,80),c("yellow2","orange2","coral3")),
+                                                         'Sex'=c('male'='mistyrose2',
+                                                                 'female'='lightseagreen'))),
+               column_names_gp=gpar(fontsize=4),
+               row_names_gp =gpar(fontsize = 7),
+               row_dend_width = unit(7, "mm"),
+               row_split = columns %>% tibble::column_to_rownames('col') %>% .[selected.cols, 'category'], 
+               heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
+                                         title_gp=gpar(fontsize=7),
+                                         at=c(-2,0,2),
+                                         grid_height=unit(4, 'mm'),
+                                         grid_width=unit(3, 'mm'),
+                                         legend_height=unit(5,'mm'),
+                                         legend_width=unit(3,'mm')),
+               row_title=NULL,
+               name='z-score')  
+
 hm3 <- Heatmap(t(pca_hm[,c('PC1','PC2')]),
                cluster_columns=dend,
                cluster_rows=TRUE,
@@ -2017,6 +2161,9 @@ hm3 <- Heatmap(t(pca_hm[,c('PC1','PC2')]),
                name='PC')
 
 hm1 %v% hm3
+
+hm2 %v% hm3
+
 ```
 
 <!-- plot a decision tree using the top features -->

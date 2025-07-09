@@ -29,7 +29,7 @@ contents:
 
     - `benchmarks`:  config files for the benchmarks
 
-        - `dense`: using dense MSA, can be run as is using `swibrid test`
+        - `dense`: using dense MSA, can be run as is using `swibrid test` in that folder
         - `sparse`: using sparse MSA. for this, the [`sparsecluster`](https://github.com/bobermayer/sparsecluster) package needs to be installed
 
     - `mouse`: config files for mouse data
@@ -59,4 +59,4 @@ contents:
         - for Vincendeau et al., download data from SRA (PRJNA831666) into the Vincendeau subfolder and run `make_info.py` on every sample to create dummy files with primer locations
         - for Panchakshari et al., use `get_data.sh` in the `HTGTS` folder to download data, collapse read mates with `bbmerge` and create info files
 
-- `supplementary_note.ipynb`: python code to make plots for supplementary note
+- `supplementary_note.ipynb`: python code to make plots for supplementary note (needs `numpy`, `scipy`, `pandas`, `seaborn`)
