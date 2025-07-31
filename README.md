@@ -37,26 +37,29 @@ contents:
         - download raw fastq files from SRA (accession PRJNA1190672) into `raw_data` and run `demultiplex_dataset.sh`; this will put fastq and `info.csv` files for individual samples into `input` and make it possible to run all samples in one go
         - download mm10 genome from UCSC or elsewhere
         - download gencode M12 reference and use `swibrid prepare_annotation`
-        - use `config.yaml` for running all mouse data
-        - use `config_noSg.yaml` for running everything only on Sm + Sa (potentially restrict info files in `input` to reads with Sa primer)
+        - use `config.yaml` for running all mouse data (assumed to produce the folder `output`)
+        - use `config_noSg.yaml` for running everything only on Sm + Sa (potentially restrict info files in `input` to reads with Sa primer; assumed to produce the folder `output_no_Sg`)
 
-    - `human`: config files for human data
+    - `human`: config files for human data and various scripts to create plots
 
         **raw sequencing data for human donors cannot be shared due to patient privacy legislation**
 
         - `demultiplex_dataset.sh` is used to demultiplex input for each run, demultiplexed fastq and `info.csv` files would be expected in `input`
         - get hg38 genome and gencode v33 reference, create LAST index
-        - `config.yaml` for "regular" runs
-        - `config_reads_averaging.yaml` to use averaging of features over reads not clusters
+        - `config.yaml` for "regular" runs (assumed to produce the folder `output`)
+        - `config_reads_averaging.yaml` to use averaging of features over reads not clusters (assumed to produce the folder `output_reads_averaging`)
         - `combine_replicates.sh` to pool reads from technical replicates
         - `plot_bars.sh` and `plot_bars.py` to plot isotype fractions as in Fig. 1
         - `plot_circles.sh` and `plot_circles.py` to create bubble plots of Fig. 1
         - `plot_clustering.sh` to create read plots for Fig. 1 and S2
         - `plot_breakpoints.sh` and `plot_breakpoint_stats.py` to create breakpoint matrix plot of Fig. 2A
+        - `meta_clustering.py` and `meta_clustering.sh` is used for meta-clustering of clusters from multiple samples
+        - `cluster_tracing.ipynb` is used to create the annotated read plots for tracing clusters across samples
+        - `minION_vs_pacBIO_vs_HTGTS.ipynb` is used to compare different technologies in different species and regions
 
      - `external`: config files for public datasets (Vincendeau et al. and Panchakshari et al.)
 
         - for Vincendeau et al., download data from SRA (PRJNA831666) into the Vincendeau subfolder and run `make_info.py` on every sample to create dummy files with primer locations
-        - for Panchakshari et al., use `get_data.sh` in the `HTGTS` folder to download data, collapse read mates with `bbmerge` and create info files
+        - for Panchakshari et al., use `get_data.sh` in the `HTGTS` folder to download data (accessions SRR2104731-47 and SRR6293456-63), collapse read mates with `bbmerge` and create info files
 
 - `supplementary_note.ipynb`: python code to make plots for supplementary note (needs `numpy`, `scipy`, `pandas`, `seaborn`)
