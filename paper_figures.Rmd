@@ -1497,7 +1497,7 @@ draw(hm1, heatmap_legend_side = "bottom", annotation_legend_side = "bottom")
 do ridge regression
 
 ```{r Fig3G, fig.width=1.25 * fig_scale, fig.height=3.5 * fig_scale}
-train_batches <- c('20220`4`25','20221118','20221212','20230120','20230213')
+train_batches <- c('20220425','20221118','20221212','20230120','20230213')
 test_batches <- '20240830'
 train <- CH12.meta$Batch %in% train_batches
 test <- CH12.meta$Batch %in% test_batches
