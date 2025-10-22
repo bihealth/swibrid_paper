@@ -1,6 +1,7 @@
 library(dplyr)
 library(tidyverse)
 library(scales)
+library(openxlsx)
 
 set.seed(1)
 
@@ -102,6 +103,46 @@ columns <- list('Diversity'=c('clusters',
                                          'Breaks',
                                          'Variants')))
 
+wb <- createWorkbook()
+addWorksheet(wb, sheetName='description')
+addWorksheet(wb, sheetName='synthetic data')
+addWorksheet(wb, sheetName='cell numbers')
+addWorksheet(wb, sheetName='meta-clustering')
+addWorksheet(wb, sheetName='VDJ data')
+addWorksheet(wb, sheetName='HD data')
+addWorksheet(wb, sheetName='HD data by reads')
+addWorksheet(wb, sheetName='Vincendeau data')
+addWorksheet(wb, sheetName='HTGTS data')
+addWorksheet(wb, sheetName='HTGTS homology')
+addWorksheet(wb, sheetName='mouse tissues')
+addWorksheet(wb, sheetName='mouse tissues (no Sg)')
+addWorksheet(wb, sheetName='CH12 data')
+addWorksheet(wb, sheetName='CH12 data (no Sg)')
+addWorksheet(wb, sheetName='CVID data')
+addWorksheet(wb, sheetName='CVID data pooled')
+addWorksheet(wb, sheetName='DNA repair data')
+
+description <- data.frame(
+  rbind(c('synthetic data','data from simulation experiments','1D'),
+        c('cell numbers','data from runs with different cell numbers','1E, 1F, 1G'),
+        c('meta-clustering','meta-clustering of cell number data','1F'),
+        c('VDJ data','data from bulk VDJ sequencing','1G'),
+        c('HD data','data for cohort C1+C2','2B, 2C, 2D, S2F, S2G, S2I'),
+        c('HD data by reads','data for cohort C1+C2 (no clustering)','S2I'),
+        c('CVID data','data for CVID cohort + controls','2D, 4B, S4A'),
+        c('Vincendeau data','data from Vincendeau et al.','2F, 2G, 2H, S2J'),
+        c('HTGTS data','re-processed HTGTS data','S3A-C'),
+        c('HTGTS homology','homology results for HTGTS data','S3D'),
+        c('mouse tissues','data from mouse lymph nodes + spleen','2F, 3B, S2J'),
+        c('mouse tissues (no Sg)','data from mouse lymph nodes + spleen (without Sg reads)','3B'),
+        c('CH12 data','results for CH12 WT and KO cells','3B-G'),
+        c('CH12 data (no Sg)','CH12 results without Sg reads','3B'),
+        c('CVID (pooled)','CVID cohort (pooled replicates)','4C-J, S4B-H'),
+        c('DNA repair','DNA repair cohort', '4F, 4G, 4J')))
+colnames(description) <- c('sheet','description','used in figure')
+
+writeData(wb, 'description', description)
+
 # synthetic data
 synthetic.data <- read.csv('swibrid_runs/benchmark/dense/output/summary/20240313_cluster_benchmark_dense_stats.csv',header=1,row.names=1) %>%
   tibble::rownames_to_column('sample') %>%
@@ -111,7 +152,7 @@ synthetic.data <- read.csv('swibrid_runs/benchmark/dense/output/summary/20240313
                 rep=gsub('mix_n([0-9]*)_s([0-9]*)_([0-9])*k','\\2',sample),
                 nreads=gsub('mix_n([0-9]*)_s([0-9]*)_([0-9]*k)','\\3',sample)) %>%
   dplyr::select(tidyselect::any_of(c('sample','nclones','rep','nreads',columns$col))) 
-write.csv(synthetic.data, 'data/synthetic_data.csv')
+writeData(wb, 'synthetic data', synthetic.data)
 
 # human and mouse results
 
@@ -147,14 +188,7 @@ cellswitch.data <- human_results %>%
                                              '21085'='B',
                                              '21086'='C'))) %>%
   dplyr::select(Donor,ncells,Batch,sample,clusters_raw,alpha_ratio_clusters,cluster_gini_raw,cluster_inverse_simpson_raw)
-write.csv(cellswitch.data, 'data/cellswitch_data.csv')
-
-PCR.data <- human_results %>%
-  tibble::rownames_to_column('sample') %>%
-  dplyr::filter(grepl('20250703',sample)) %>%
-  dplyr::mutate(donor=gsub('[0-9]*_(P[0-9])x([0-9]*)','\\1',sample),
-                ncycles=gsub('[0-9]*_(P[0-9])x([0-9]*)','\\2',sample))
-write.csv(PCR.data, 'data/PCR_data.csv')
+writeData(wb, 'cell numbers', cellswitch.data)
 
 meta_clustering <- lapply(c('21084','21085','21086','mixed'), 
                           function(donor) 
@@ -193,8 +227,7 @@ meta_clustering <- lapply(c('21084','21085','21086','mixed'),
                                              '21085'='B',
                                              '21086'='C')),
                 ncells=factor(ifelse(ncells==50000,'50k','100k'),levels=c('50k','100k')))
-write.csv(meta_clustering, 'data/cellswitch_meta_clustering.csv')
-
+writeData(wb, 'meta-clustering', meta_clustering)
 
 # HD Cohort 1
 HD_sample_sheet <- rbind(read.csv('../sodar/2023_OC/a_2023_OC.txt',
@@ -278,7 +311,7 @@ HD.data <- human_results %>%
                               paste0(plyr::revalue(Sample, setNames(sample(new.samples,n_distinct(Sample)),unique(Sample))),'_',feature_map[feature]),
                               Sample)) %>%
   dplyr::ungroup()
-write.csv(HD.data, 'data/HD_data.csv')
+writeData(wb, 'HD data', HD.data)
 
 HD.data.by_reads <- human_results_by_reads %>%
   tibble::rownames_to_column('Sample') %>%
@@ -295,7 +328,7 @@ HD.data.by_reads <- human_results_by_reads %>%
                 Sample=ifelse(Cohort=='C1',
                               paste0(plyr::revalue(Sample, setNames(sample(new.samples,n_distinct(Sample)),unique(Sample))),'_',feature_map[feature]),
                               Sample))
-write.csv(HD.data.by_reads, 'data/HD_data_by_reads.csv')
+writeData(wb, 'HD data by reads', HD.data.by_reads)
 
 CH12_sample_sheet <- read.csv('../sodar/2022_CH12/a_2022_CH12.txt',
                               sep='\t',header=1) %>%
@@ -313,7 +346,7 @@ CH12.data <- mouse_results %>%
   dplyr::filter(reads >= 500,!grepl('PP|exon|noAct|20220411|20220810|20220618',Sample),QC=='PASS') %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('Genotype','Batch','Sample',columns$col))) 
-write.csv(CH12.data, 'data/CH12_data.csv')
+writeData(wb, 'CH12 data', CH12.data)
 
 CH12.data.noSg <- mouse_results_no_Sg %>%
   tibble::rownames_to_column('Sample') %>%
@@ -321,7 +354,7 @@ CH12.data.noSg <- mouse_results_no_Sg %>%
   dplyr::filter(reads >= 500,!grepl('PP|exon|noAct|20220411|20220810|20220618',Sample),QC=='PASS') %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('Genotype','Batch','Sample',columns$col))) 
-write.csv(CH12.data.noSg, 'data/CH12_data_noSg.csv')
+writeData(wb, 'CH12 data (no Sg)', CH12.data.noSg)
 
 mouse_sample_sheet <- read.csv('../sodar/2019_tests/a_2019_test.txt',
                                sep='\t',header=1) %>%
@@ -342,7 +375,7 @@ mouse.data <- mouse_results %>%
   dplyr::filter(reads >= 500) %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('material','Batch','Sample',columns$col)))
-write.csv(mouse.data, 'data/mouse_data.csv')
+writeData(wb, 'mouse tissues', mouse.data)
 
 mouse.data.noSg <- mouse_results_no_Sg %>%
   tibble::rownames_to_column('Sample') %>%
@@ -350,7 +383,7 @@ mouse.data.noSg <- mouse_results_no_Sg %>%
   dplyr::filter(reads >= 500) %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('material','Batch','Sample',columns$col))) 
-write.csv(mouse.data.noSg, 'data/mouse_data_noSg.csv')
+writeData(wb, 'mouse tissues (no Sg)', mouse.data.noSg)
 
 QP_sample_sheet <- read.csv('../sodar/2019_QianPan/a_2019_QianPan.txt',
                             sep='\t',header=1) %>%
@@ -371,7 +404,7 @@ QP.data <- human_results %>%
   dplyr::filter(reads > 500, QC=='PASS') %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('Donor','Batch','Sample','Diagnosis','Age','Sex',columns$col)))
-write.csv(QP.data, 'data/QP_data.csv')
+writeData(wb, 'DNA repair data', QP.data)
 
 FB_sample_sheet <- read.csv('../sodar/2023_FB/a_2023_FB.txt',
                             sep='\t',header=1) %>%
@@ -408,7 +441,7 @@ FB.data <- human_results %>%
   dplyr::mutate(Treatment=ifelse((Donor=='FB_35') | (Treatment==''),'none',Treatment),
                 IV=ifelse(IV=='','none',IV),
                 Complication=ifelse(Complication=='', 'na', Complication)) 
-write.csv(FB.data, 'data/FB_data.csv')
+writeData(wb, 'CVID data', FB.data)
 
 FB.data.pooled <- human_results %>%
   tibble::rownames_to_column('Sample') %>%
@@ -425,7 +458,7 @@ FB.data.pooled <- human_results %>%
   dplyr::mutate(Treatment=ifelse((Donor=='FB_35') | (Treatment==''),'none',Treatment),
                 IV=ifelse(IV=='','none',IV),
                 Complication=ifelse(Complication=='', 'na', Complication))
-write.csv(FB.data.pooled, 'data/FB_data_pooled.csv')
+writeData(wb, 'CVID data pooled', FB.data.pooled)
 
 vincendeau.data <- read.csv('swibrid_runs/external/vincendeau/output/summary/20240425_vincendeau_samples_stats.csv',
                             header=1,row.names=1) %>%
@@ -433,7 +466,7 @@ vincendeau.data <- read.csv('swibrid_runs/external/vincendeau/output/summary/202
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::mutate(Genotype=gsub('PRJNA[0-9]*_(.*)_[0-9]$','\\1',Sample)) %>%
   dplyr::select(tidyselect::any_of(c('Genotype','Sample',columns$col))) 
-write.csv(vincendeau.data, 'data/vincendeau_data.csv')
+writeData(wb, 'Vincendeau data', vincendeau.data)
 
 HTGTS.samples <- c("SRR2104731","SRR2104732","SRR2104733","SRR2104734","SRR2104735","SRR2104736","SRR2104737","SRR2104738",
                    "SRR2104739","SRR2104740","SRR2104741","SRR2104742","SRR2104743","SRR2104744",
@@ -453,7 +486,7 @@ HTGTS.data <- read.csv('swibrid_runs/external/HTGTS/output/summary/HTGTS_stats.c
   dplyr::inner_join(HTGTS.meta, by='Sample') %>%
   dplyr::mutate_all(~replace_na(.,0)) %>%
   dplyr::select(tidyselect::any_of(c('Genotype','celltype','Sample',columns$col))) 
-write.csv(HTGTS.data, 'data/HTGTS_data.csv')
+writeData(wb, 'HTGTS data', HTGTS.data)
 
 HTGTS.homology <- lapply(HTGTS.samples, function(smp) read.csv(paste0('swibrid_runs/external/HTGTS/pipeline/',smp,'/',smp,'_cluster_analysis.csv'), header=1, row.names=1) %>%
                            tibble::rownames_to_column('cluster') %>%
@@ -471,7 +504,7 @@ HTGTS.homology <- lapply(HTGTS.samples, function(smp) read.csv(paste0('swibrid_r
   do.call(rbind,.) %>%
   dplyr::inner_join(HTGTS.meta, by='Sample') %>%
   dplyr::filter(!is.na(n_homology))
-write.csv(HTGTS.homology, 'data/HTGTS_homology.csv')
+writeData(wb, 'HTGTS homology', HTGTS.homology)
 
 vdj_samples <- read.csv('../human_samples/20230105_VDJ/20230113_mixcr/samples.txt',sep='\t',header=FALSE)[,2]
 VDJ_results <- lapply(vdj_samples, function(sample)
@@ -486,4 +519,6 @@ VDJ_results <- lapply(vdj_samples, function(sample)
                                       '21086'='C')),
                 ncells=as.numeric(gsub('^[0-9]*_([0-9]*)_([0-9])','\\1',Sample))) %>%
   dplyr::select(cloneId,readCount,uniqueMoleculeCount,allVHitsWithScore,allCHitsWithScore,aaSeqCDR3,Sample,Donor,ncells)
-write.csv(VDJ_results, 'data/VDJ_results.csv')
+writeData(wb, 'VDJ data', VDJ_results)
+
+saveWorkbook(wb, file = "data/source_data.xlsx", overwrite = TRUE)

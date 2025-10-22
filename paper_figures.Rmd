@@ -33,6 +33,7 @@ library(grid)
 library(gtools)
 library(lme4)
 library(dendextend)
+library(openxlsx)
 ```
 
 setup
@@ -192,7 +193,8 @@ plot # clusters vs. # clones
 
 ```{r Fig1D, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
 # simulation data for Fig. 1
-synthetic.data <- read.csv('data/synthetic_data.csv',header=1, row.names=1)
+#synthetic.data <- read.csv('data/synthetic_data.csv',header=1, row.names=1)
+synthetic.data <- read.xlsx('data/source_data.xlsx',sheet='synthetic data')
 ggplot(synthetic.data %>% 
          dplyr::mutate(nreads=factor(nreads, levels=c('10k','20k','50k','100k'))), 
        aes(x=nclones, y=clusters_raw, color=nreads)) + 
@@ -213,7 +215,7 @@ cell switch: plot # clusters vs. # cells
 
 ```{r Fig1E, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
 # cell number experiment for  Fig. 1
-cellswitch.data <- read.csv('data/cellswitch_data.csv',header=1, row.names=1)
+cellswitch.data <- read.xlsx('data/source_data.xlsx',sheet='cell numbers')
 
 ggplot(cellswitch.data %>%
          dplyr::mutate(Donor=plyr::revalue(Donor,
@@ -237,7 +239,7 @@ ggplot(cellswitch.data %>%
 check reproducibility of clones in the cell switch experiment
 
 ```{r Fig1F, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
-meta_clustering <- read.csv('data/cellswitch_meta_clustering.csv', header=1, row.names=1)
+meta_clustering <- read.xlsx('data/source_data.xlsx', sheet='meta-clustering')
 
 ggplot(meta_clustering %>% 
          dplyr::mutate(ncells=factor(ncells, levels=c('50k','100k')),
@@ -247,8 +249,6 @@ ggplot(meta_clustering %>%
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA) +
   geom_jitter(aes(color=Donor, group=mixing), position=position_jitterdodge(dodge.width = .8, jitter.width=.05), size=1) +
   my_theme() +
-  #theme(legend.position='bottom') +
-  #coord_cartesian(ylim=c(15,40)) +
   scale_fill_manual(values=c('gray','white'), guide=FALSE) +
   scale_color_manual(values=setNames(c(brewer.pal(3,'Set1'),'gray20'),c('A-A','B-B','C-C','mixed')),na.value='gray20') +
   labs(x='# cells',y='% shared clusters in pair', fill='pair', color='Donors')
@@ -258,7 +258,7 @@ show VDJ results: isotype frequencies
 
 ```{r Fig1G, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
 # bulk VDJ results for Fig. 1
-VDJ_results <- read.csv('data/VDJ_results.csv',header=1, row.names=1)
+VDJ_results <- read.xlsx('data/source_data.xlsx',sheet='VDJ data')
 
 get_gini <- function(x) {
   # calculate Gini coefficient of array x; see https://stackoverflow.com/questions/48999542/more-efficient-weighted-gini-coefficient-in-python
@@ -320,44 +320,6 @@ vdj_df %>%
   labs(y='Fraction IGHA SWIBRID',x='Fraction IGHA VDJ',shape='# cells')
 ```
 
-```{r FigS1X1, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
-vdj_df %>% 
-  dplyr::mutate(ncells=factor(gsub('000$','k',ncells), levels=c('50k','100k')),
-                Donor=gsub('Donor ','',Donor)) %>%
-  dplyr::filter(metric=='cluster_gini_raw') %>%
-  dplyr::group_by(ncells, Donor, method) %>%
-  dplyr::summarise(mean_gini=mean(value),
-                   se_gini=sd(value)/sqrt(length(value))) %>%
-  pivot_wider(id_cols=c(ncells,Donor),names_from=method,values_from=c('mean_gini','se_gini')) %>%
-  ggplot(aes(x=mean_gini_VDJ, y=mean_gini_SWIBRID,
-             xmin=mean_gini_VDJ-se_gini_VDJ,
-             xmax=mean_gini_VDJ+se_gini_VDJ,
-             ymin=mean_gini_SWIBRID-se_gini_SWIBRID,
-             ymax=mean_gini_SWIBRID+se_gini_SWIBRID)) +
-  geom_point(aes(color=Donor,shape=ncells),size=1) +
-  geom_errorbar(linewidth=.25) +
-  geom_errorbarh(linewidth=.25) +
-  #scale_x_continuous(breaks=c(.6,.65)) +
-  my_theme() +
-  scale_color_brewer(palette='Set1') +
-  theme(strip.background=element_blank()) +
-  labs(y='Gini coefficient SWIBRID',x='Gini coefficient VDJ',shape='# cells')
-```
-
-```{r FigS1X2, fig.width=2 * fig_scale, fig.height=1.4 * fig_scale}
-library(ggpmisc)
-PCR.data <- read.csv('data/PCR_data.csv',header=1,row.names=1)
-ggplot(PCR.data, aes(x=as.integer(ncycles), y=log10(reads))) + 
-  geom_point(aes(color=donor)) + 
-  geom_smooth(method='lm', color='black', linewidth=.5) +
-  geom_abline(slope=log10(2), intercept=-1.5, linewidth=.5, linetype='dashed') +
-  my_theme() + 
-  scale_color_brewer(palette='Set2') +
-  scale_y_continuous(breaks = log10(c(1, 10, 100, 1000,10000, 100000)),
-                     label = c(1, 10, 100, 1000, 10000, 100000)) +
-  labs(x='# of cycles',y='# of reads')
-```
-  
 # Figure 2 + supplements 
 
 fraction of explained variance for different feature groups in HD cohort
@@ -404,7 +366,7 @@ my_fitExtractVarPartModel <- function(formula, data) {
 }
 
 # HD data for Fig. 2
-HD.data <- read.csv('data/HD_data.csv', header=1, row.names=1)
+HD.data <- read.xlsx('data/source_data.xlsx', sheet='HD data')
 
 HD.scaled <- HD.data %>%
   dplyr::filter(Cohort=='C1') %>%
@@ -471,7 +433,7 @@ HD.var %>%  dplyr::left_join(columns, by='col') %>%
   labs(x='', y='% Explained variance', fill='')
 ```
 
-```{r Fig2D, fig.width=1.5 * fig_scale,fig.height=1.75 * fig_scale}
+```{r Fig2C, fig.width=1.5 * fig_scale,fig.height=1.75 * fig_scale}
 donor_cutoff <- .25
 batch_cutoff <- .35
 sequencing_cutoff <- .2
@@ -530,7 +492,7 @@ HD.var %>%
 
 confirm that downsampled diversity measures are better
 
-```{r FigS2J_1, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
+```{r FigS2I_1, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
 tmp <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable,
@@ -560,7 +522,7 @@ ggplot(tmp,aes(x=variable, y=100*variance, fill=category)) +
 
 confirm that using isotype-specific context features doesn't help
 
-```{r FigS2J_2, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
+```{r FigS2I_2, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
 tmp <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable,
@@ -590,8 +552,8 @@ ggplot(tmp, aes(x=variable, y=100*variance, fill=category)) +
 
 test the effects of averaging over clusters or reads
 
-```{r FigS2J_3, fig.width=1.4 * fig_scale,fig.height=1.7 * fig_scale}
-HD.data.br <- read.csv('data/HD_data_by_reads.csv', header=1, row.names=1) 
+```{r FigS2I_3, fig.width=1.4 * fig_scale,fig.height=1.7 * fig_scale}
+HD.data.br <- read.xlsx('data/source_data.xlsx', sheet='HD data by reads')
 
 HD.scaled.br <- HD.data.br %>%
   dplyr::filter(Cohort=='C1') %>%
@@ -725,7 +687,7 @@ ggplot(tmp %>%
 
 distributions of features in the two HD cohorts
 
-```{r Fig2C, fig.width=4.25 * fig_scale, fig.height=1.5 * fig_scale}
+```{r Fig2D, fig.width=4.25 * fig_scale, fig.height=1.5 * fig_scale}
 cols.here.human <- c('pct_templated_inserts',
                      'untemplated_inserts',
                      'pct_sequential_switch',
@@ -762,9 +724,9 @@ ggplot(cohort.data, aes(x=Cohort, y=value)) +
 same thing for mouse tissue and Vincendeau
 
 ```{r Fig2F, fig.width=4. * fig_scale, fig.height=1.75 * fig_scale}
-mouse.data <- read.csv('data/mouse_data.csv',header=1, row.names=1)  %>%
+mouse.data <- read.xlsx('data/source_data.xlsx', sheet='mouse tissues') %>%
   tibble::column_to_rownames('Sample')
-vincendeau.data <- read.csv('data/vincendeau_data.csv', header=1, row.names=1)  %>%
+vincendeau.data <- read.xlsx('data/source_data.xlsx', sheet='Vincendeau data') %>%
   tibble::column_to_rownames('Sample')
 
 cols.here.mouse <- c('pct_inversions',
@@ -804,7 +766,7 @@ cohort.data %>%
 
 check length dependence of Vincendeau data
 
-```{r FigS2K, fig.width=1.5 * fig_scale, fig.height=1.75 * fig_scale}
+```{r FigS2J, fig.width=1.5 * fig_scale, fig.height=1.75 * fig_scale}
 cols.here.mouse <- c('read_length_SG_mean')
 cohort.data <- rbind(mouse.data %>%
                        dplyr::mutate(species='mouse tissue',
@@ -959,7 +921,7 @@ plots <- lapply(comparisons, function(x)
                    se1=paste0('se_',x[[1]]),
                    se2=paste0('se_',x[[2]])) %>%
     dplyr::mutate(tstat=abs(mean2-mean1)/(sqrt(se2**2+se1**2)),
-                  pval=dt(tstat,4)) %>%
+                  pval=2*pt(-abs(tstat),4)) %>%
     dplyr::mutate(padj=p.adjust(pval, method='BH'),
                   sig=ifelse(padj < .05, 'sig','ns')) %>%
     ggplot(aes(x=mean1,y=mean2)) +
@@ -996,123 +958,10 @@ plot_grid(plot_grid(plotlist=lapply(plots, function(x) x + theme(legend.position
                     ncol=4, align='vh'),
           get_legend(plots[[1]] + theme(legend.margin=margin(0,0,0,0,'mm'))), ncol=1, rel_heights=c(.65,.35))
 ```
-
-<!-- the PCR cycles experiment -->
-
-<!-- ```{r PCR_cycles} -->
-<!-- PCR.data <- read.csv('../human_samples/20250703_PCR_cycles/output/summary/20250703_PCR_cycles_stats.csv',header=1,row.names=1) %>% -->
-<!--   tibble::rownames_to_column('sample') %>% -->
-<!--   dplyr::mutate(donor=gsub('[0-9]*_(P[0-9])x([0-9]*)','\\1',sample), -->
-<!--                 ncycles=gsub('[0-9]*_(P[0-9])x([0-9]*)','\\2',sample))  -->
-
-<!-- PCR.X <- PCR.data[,c('sample',selected.cols)] %>% -->
-<!--   dplyr::mutate_if(is.numeric,scale) %>% -->
-<!--   tibble::column_to_rownames('sample') -->
-
-<!-- PCR.meta <- PCR.data[,c('ncycles','donor')] -->
-
-<!-- cols.here <- c('reads','clusters_raw','PCR_bias_length','PCR_bias_GC') -->
-<!-- PCR.data %>% -->
-<!--   gather(variable, value, cols.here) %>% -->
-<!--   dplyr::select(variable, value, ncycles, donor) %>% -->
-<!--   ggplot(aes(x=ncycles, y=value, fill=ncycles)) +  -->
-<!--   geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) +  -->
-<!--   geom_point(aes(color=donor), position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) +  -->
-<!--   my_theme() + -->
-<!--   coord_cartesian(clip='off') + -->
-<!--   facet_wrap(~variable, switch='y', scales='free_y') + -->
-<!--   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1), -->
-<!--         legend.position='none') + -->
-<!--   labs(x='',y='', fill='')  -->
-
-<!-- take <- (rowSums(is.na(PCR.X))==0) &  (PCR.meta$ncycles %in% c('15','20','25')) -->
-<!-- pca <- prcomp(PCR.X[take,]) -->
-<!-- pcadat <- cbind(pca$x,PCR.meta[take,]) -->
-
-<!-- ggplot(pcadat,aes(x=PC1,y=PC2)) + -->
-<!--   geom_point(aes(color=donor, shape=ncycles),size=3) + -->
-<!--   my_theme() + -->
-<!--   guides(color=guide_legend(override.aes = list(shape=15,size=2), ncol=3)) + -->
-<!--   theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2, -->
-<!--         legend.key.size=unit(1.5,'mm'), -->
-<!--         legend.key.spacing.y=unit(0,'mm'), -->
-<!--         legend.position='bottom', -->
-<!--         legend.box='horizontal') + -->
-<!--   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'), -->
-<!--        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'), -->
-<!--        color='',shape='',fill='') -->
-<!-- ``` -->
-
-<!-- ```{r cell_switch} -->
-<!-- cellswitch_sample_sheet <- read.csv('../sodar/2020_CellSwitch/a_2020_CellSwitch.txt', -->
-<!--                             sep='\t',header=1) %>% -->
-<!--   dplyr::left_join(read.csv('../sodar/2020_CellSwitch/s_2020_CellSwitch.txt',sep='\t',header=1), -->
-<!--                    by='Sample.Name') %>% -->
-<!--   dplyr::mutate(Donor=as.character(Source.Name), -->
-<!--                 sample=Sample.Name, -->
-<!--                 ncells=Parameter.Value.Cell.Number., -->
-<!--                 Batch=as.character(Parameter.Value.Batch.), -->
-<!--                 QC=as.character(Parameter.Value.QC.)) %>% -->
-<!--   dplyr::select(Donor,sample,ncells,Batch,QC) %>% -->
-<!--   dplyr::filter(Donor %in% c('21084','21085','21086')) -->
-
-<!-- cellswitch.data <- read.csv('../human_samples/20240307_hg38_results/output/summary/20240307_human_samples_stats.csv', -->
-<!--                           header=1,row.names=1) %>% -->
-<!--   tibble::rownames_to_column('sample') %>% -->
-<!--   dplyr::inner_join(cellswitch_sample_sheet, by='sample') %>% -->
-<!--   dplyr::filter(reads >= 500, QC=='PASS') %>% -->
-<!--   dplyr::mutate_all(~replace_na(.,0)) %>% -->
-<!--   dplyr::mutate(Donor=plyr::revalue(Donor, c('21084'='A', -->
-<!--                                              '21085'='B', -->
-<!--                                              '21086'='C'))) %>% -->
-<!--   dplyr::select(Donor,ncells,Batch,sample,selected.cols) -->
-
-
-<!-- cellswitch.X <- cellswitch.data[,c('sample',selected.cols)] %>% -->
-<!--   dplyr::mutate_if(is.numeric,scale) %>% -->
-<!--   tibble::column_to_rownames('sample') -->
-
-<!-- cellswitch.meta <- cellswitch.data[,c('Donor','ncells')] -->
-
-<!-- take <- (rowSums(is.na(cellswitch.X))==0) #& (cellswitch.meta$ncells > 10000) -->
-<!-- pca <- prcomp(cellswitch.X[take,]) -->
-<!-- pcadat <- cbind(pca$x,cellswitch.meta[take,]) -->
-
-<!-- ggplot(pcadat,aes(x=PC1,y=PC2)) + -->
-<!--   geom_point(aes(fill=ncells),size=3,pch=21) + -->
-<!--   geom_line(aes(group=Donor,color=Donor)) + -->
-<!--   my_theme() + -->
-<!--   theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2, -->
-<!--         legend.key.size=unit(1.5,'mm'), -->
-<!--         legend.key.spacing.y=unit(0,'mm'), -->
-<!--         legend.position='right') + -->
-<!--   scale_fill_distiller(palette='Spectral',limits=c(100,200000), trans='log', breaks=c(1000,10000,100000)) + -->
-<!--   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'), -->
-<!--        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'), -->
-<!--        color='Donor',fill='# cells') -->
-
-<!-- take <- (rowSums(is.na(cellswitch.X))==0) & (cellswitch.meta$ncells > 10000) -->
-<!-- pca <- prcomp(cellswitch.X[take,]) -->
-<!-- pcadat <- cbind(pca$x,cellswitch.meta[take,]) -->
-
-<!-- ggplot(pcadat,aes(x=PC1,y=PC2)) + -->
-<!--   geom_point(aes(fill=ncells,color=Donor),size=3,pch=21) + -->
-<!--   geom_line(aes(group=Donor,color=Donor)) + -->
-<!--   my_theme() + -->
-<!--   theme(aspect.ratio=pca$sdev[2]**2/pca$sdev[1]**2, -->
-<!--         legend.key.size=unit(1.5,'mm'), -->
-<!--         legend.key.spacing.y=unit(0,'mm'), -->
-<!--         legend.position='right') + -->
-<!--   scale_fill_distiller(palette='Spectral',limits=c(100,200000), trans='log', breaks=c(1000,10000,100000)) + -->
-<!--   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'), -->
-<!--        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'), -->
-<!--        color='Donor',fill='# cells') -->
-<!-- ``` -->
-
 # Figure 3 + supplement (CH12)
 
 ```{r FigS3A, fig.width=5.5 * fig_scale, fig.height=4.5 * fig_scale}
-HTGTS.data <- read.csv("data/HTGTS_data.csv", header=1, row.names=1) %>%
+HTGTS.data <- read.xlsx("data/source_data.xlsx", sheet='HTGTS data') %>%
   tibble::column_to_rownames('Sample')
 
 HTGTS.cols <- intersect(colnames(HTGTS.data),selected.cols.mouse)
@@ -1155,7 +1004,7 @@ plots <- lapply(comparisons, function(x)
                    se1=paste0('se_',x[[1]],'_',x[[2]]),
                    se2=paste0('se_',x[[1]],'_',x[[3]])) %>%
     dplyr::mutate(tstat=abs(mean2-mean1)/(sqrt(se2**2+se1**2)),
-                  pval=dt(tstat,4),
+                  pval=2*pt(-abs(tstat),4),
                   padj=p.adjust(pval, method='BH'),
                   sig=ifelse(padj < .05, 'sig','ns')) %>%
     ggplot(aes(x=mean1,y=mean2)) +
@@ -1223,9 +1072,10 @@ HTGTS.data %>%
 show homology values for HTGTS data
 
 ```{r FigS3D, fig.width=3.25 * fig_scale, fig.height=1.25 * fig_scale}
-read.csv('data/HTGTS_homology.csv',header=1, row.names=1) %>%
+read.xlsx('data/source_data.xlsx', sheet='HTGTS homology') %>%
   dplyr::mutate(Genotype=factor(Genotype, levels=c('WT','Atm','Lig4','Trp53bp1')),
-                celltype=gsub('spleen','Spleen',celltype)) %>%
+                celltype=gsub('spleen','Spleen',celltype),
+                n_homology=as.numeric(n_homology)) %>%
   dplyr::filter(xor(isotype=='Sa', celltype=='Spleen')) %>%
   dplyr::group_by( celltype, Genotype, isotype, n_homology) %>%
   dplyr::summarise(mean_frac=mean(frac),
@@ -1293,11 +1143,11 @@ these PCAs use `r dim(HTGTS.spleen.X)[2]` (spleen) and `r dim(HTGTS.CH12.X)[2]` 
 show a PCA of spleen and lymph node data together with PP and CH12 using all switch regions or only Sm+Sa
 
 ```{r Fig3B, fig.width=3.5 * fig_scale, fig.height=1.75 * fig_scale}
-CH12.data <- read.csv('data/CH12_data.csv',header=1, row.names=1) %>%
+CH12.data <- read.xlsx('data/source_data.xlsx',sheet='CH12 data') %>%
   tibble::column_to_rownames('Sample')
-CH12.data.noSg <- read.csv('data/CH12_data_noSg.csv', header=1, row.names=1) %>%
+CH12.data.noSg <- read.xlsx('data/source_data.xlsx',sheet='CH12 data (no Sg)') %>%
   tibble::column_to_rownames('Sample')
-mouse.data.noSg <- read.csv('data/mouse_data_noSg.csv', header=1, row.names=1)
+mouse.data.noSg <- read.xlsx('data/source_data.xlsx',sheet='mouse tissues (no Sg)')
 
 mouse.cols <-  intersect(selected.cols.mouse, intersect(colnames(CH12.data),
                                                         colnames(mouse.data))) 
@@ -1650,7 +1500,7 @@ data.frame(acc=c(unlist(batch.CV),unlist(sample.CV)),
 explained variance for FB cohort
 
 ```{r Fig4B,fig.width=1.25 * fig_scale, fig.height=1.7 * fig_scale}
-FB.data <- read.csv('data/FB_data.csv', header=1, row.names=1) %>%
+FB.data <- read.xlsx('data/source_data.xlsx', sheet='CVID data') %>%
   dplyr::mutate(Batch=as.character(Batch)) %>%
   tibble::column_to_rownames('Sample')
 FB.X <- FB.data[grepl('2023',row.names(FB.data)),intersect(colnames(FB.data),columns$col)] %>%
@@ -1673,8 +1523,6 @@ FB.var %>%  dplyr::left_join(columns, by='col') %>%
   ggplot(aes(x=variable, y=100*variance)) + 
   geom_boxplot(aes(fill=variable), outlier.shape=NA, lwd=.5, legend=FALSE) + 
   geom_jitter(position=position_jitter(width=.25), size=.25) +
-  #geom_jitter(aes(color=ifelse(col %in% selected.cols, 'selected','unused')), position=position_jitter(width=.25), size=.25) +
-  #scale_color_manual(values=c('unused'='gray','selected'='black')) +
   my_theme() +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
         strip.clip='off',
@@ -1703,12 +1551,12 @@ FB.var %>%  dplyr::left_join(columns, by='col') %>%
 a PCA with all selected features on pooled FB data from 2023
  
 ```{r Fig4D, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale} 
-FB.data.pooled <- read.csv('data/FB_data_pooled.csv', header=1, row.names=1) %>%
+FB.data.pooled <- read.xlsx('data/source_data.xlsx',sheet='CVID data pooled') %>%
   dplyr::mutate(status=ifelse(Diagnosis %in% c('Control','Subclass','Atypical'), Diagnosis, 'CVID'),
                 Treatment=ifelse((Donor=='FB_35') | (Treatment==''),'none',Treatment),
                 IV=ifelse(IV=='','none',IV)) %>%
   tibble::column_to_rownames('Sample')
-QP.data <- read.csv('data/QP_data.csv', header=1, row.names=1) %>%
+QP.data <- read.xlsx('data/source_data.xlsx', sheet='DNA repair data') %>%
   dplyr::mutate(Diagnosis=plyr::revalue(Diagnosis,c('control'='Control'))) %>%
   tibble::column_to_rownames('Sample')
 
@@ -1974,7 +1822,7 @@ here we have `r sum(train.here)` samples in the training data set, `r sum(test.h
 
 show the ridge coefficients
 
-```{r FigS4H, fig.width=2.5 * fig_scale, fig.height=1.5 * fig_scale}
+```{r FigS4G, fig.width=2.5 * fig_scale, fig.height=1.5 * fig_scale}
 tmp <- data.frame(coef=coef(mod)[,'s0']) %>%
   dplyr::filter(rowSums(abs(.)) > 0) %>%
   dplyr::slice_max(rowSums(abs(.)),n=20) %>%
@@ -2044,7 +1892,6 @@ data.frame(acc=unlist(sample.CV),
 ```
 
 (average accuracy is `r mean(unlist(sample.CV))`) 
-
 
 heatmap
 
@@ -2238,7 +2085,7 @@ ggplot(tmp,aes(x=abs(PC1),y=abs(PC2), color=col, shape=col)) +
 
 categorize the samples
 
-```{r FigS4G, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
+```{r FigS4H, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
 ggplot(pca_hm %>% tibble::rownames_to_column('name') %>%
          dplyr::filter(dataset!='validation') %>%
          dplyr::left_join(class_df, by='name'), 
@@ -2348,36 +2195,6 @@ FB.data.pooled[FB.samples, ] %>%
   theme(legend.position='none',
         strip.clip='off',
         axis.text.x=element_text(angle=45, hjust=1, vjust=1))
-```
-
-show top examples for features related to Treatment or IV
-
-```{r FigS4X1, fig.width=1.5 * fig_scale, fig.height=1.5 * fig_scale}
-FB.data.pooled %>%
-  dplyr::mutate(IV=factor(IV,levels=c('none','ivig','scIg'))) %>%
-  ggplot(aes(x=IV, y=cluster_entropy)) + 
-  geom_boxplot(outlier.shape=NA, lwd=.5) +
-  geom_jitter(aes(color=status), width=.1, size=.5) + 
-  stat_compare_means(comparisons=list(c('none','ivig'), c('none','scIg'),c('ivig','scIg')),
-                     method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2.5) +
-  my_theme() + 
-  coord_cartesian(clip='off') +
-  scale_color_manual(values=diagnosis_colors) +
-  theme(legend.position='none',
-        axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
-  labs(x='')
-
-FB.data.pooled %>%
-  dplyr::mutate(Treatment=factor(Treatment,levels=c('none','cortison','infliximab','prednison','sirolimus','steroid','trixomazl'))) %>%
-  ggplot(aes(x=Treatment, y=occupancy_top_cluster)) + 
-  geom_boxplot(outlier.shape=NA, lwd=.5) +
-  geom_jitter(aes(color=status), width=.1, size=.5) + 
-  my_theme() + 
-  coord_cartesian(clip='off') +
-  scale_color_manual(values=diagnosis_colors) +
-  theme(legend.position='none',
-        axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
-  labs(x='')
 ```
 
 check aggregated scores
