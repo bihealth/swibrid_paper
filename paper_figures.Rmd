@@ -1,7 +1,7 @@
 ---
 title: "paper figures"
 author: "Benedikt Obermayer"
-date: "2024/12/19"
+date: "2025/11/11"
 output: 
   html_document:
     toc: true
@@ -185,6 +185,50 @@ my_theme <- function() {
         axis.text = element_text(size=7),
         axis.title = element_text(size=7))
 }
+
+wb <- createWorkbook()
+addWorksheet(wb, sheetName='Fig1D')
+addWorksheet(wb, sheetName='Fig1E')
+addWorksheet(wb, sheetName='Fig1F')
+addWorksheet(wb, sheetName='Fig1G')
+addWorksheet(wb, sheetName='Fig2B')
+addWorksheet(wb, sheetName='Fig2C')
+addWorksheet(wb, sheetName='Fig2D')
+addWorksheet(wb, sheetName='Fig2E')
+addWorksheet(wb, sheetName='Fig2F')
+addWorksheet(wb, sheetName='Fig2G')
+addWorksheet(wb, sheetName='Fig2H')
+addWorksheet(wb, sheetName='Fig3B')
+addWorksheet(wb, sheetName='Fig3C')
+addWorksheet(wb, sheetName='Fig3D')
+addWorksheet(wb, sheetName='Fig3E')
+addWorksheet(wb, sheetName='Fig3F')
+addWorksheet(wb, sheetName='Fig3G')
+addWorksheet(wb, sheetName='Fig4B')
+addWorksheet(wb, sheetName='Fig4C')
+addWorksheet(wb, sheetName='Fig4D')
+addWorksheet(wb, sheetName='Fig4E')
+addWorksheet(wb, sheetName='Fig4F')
+addWorksheet(wb, sheetName='Fig4G')
+addWorksheet(wb, sheetName='Fig4H')
+addWorksheet(wb, sheetName='Fig4J')
+addWorksheet(wb, sheetName='FigS2F')
+addWorksheet(wb, sheetName='FigS2G')
+addWorksheet(wb, sheetName='FigS2H')
+addWorksheet(wb, sheetName='FigS2I')
+addWorksheet(wb, sheetName='FigS2J')
+addWorksheet(wb, sheetName='FigS3A')
+addWorksheet(wb, sheetName='FigS3B')
+addWorksheet(wb, sheetName='FigS3C')
+addWorksheet(wb, sheetName='FigS3D')
+addWorksheet(wb, sheetName='FigS4A')
+addWorksheet(wb, sheetName='FigS4B')
+addWorksheet(wb, sheetName='FigS4C')
+addWorksheet(wb, sheetName='FigS4D')
+addWorksheet(wb, sheetName='FigS4E')
+addWorksheet(wb, sheetName='FigS4F')
+addWorksheet(wb, sheetName='FigS4G')
+addWorksheet(wb, sheetName='FigS4H')
 ```
 
 # Figure 1 + supplements
@@ -194,10 +238,11 @@ plot # clusters vs. # clones
 ```{r Fig1D, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
 # simulation data for Fig. 1
 #synthetic.data <- read.csv('data/synthetic_data.csv',header=1, row.names=1)
-synthetic.data <- read.xlsx('data/source_data.xlsx',sheet='synthetic data')
-ggplot(synthetic.data %>% 
-         dplyr::mutate(nreads=factor(nreads, levels=c('10k','20k','50k','100k'))), 
-       aes(x=nclones, y=clusters_raw, color=nreads)) + 
+synthetic.data <- read.xlsx('data/input_data.xlsx',sheet='synthetic data')
+dat <- synthetic.data %>% 
+         dplyr::mutate(nreads=factor(nreads, levels=c('10k','20k','50k','100k'))) %>%
+  dplyr::select(nclones, clusters_raw, nreads)
+ggplot(dat, aes(x=nclones, y=clusters_raw, color=nreads)) + 
   geom_abline(slope=1,intercept=0, size=.5, color='gray80') +
   geom_point(size=.5) + 
   geom_smooth(method='lm', alpha=.2, size=.5, se=FALSE) +
@@ -209,20 +254,22 @@ ggplot(synthetic.data %>%
   theme(legend.position=c(.85,.35),
         legend.background = element_rect(fill=NA)) +
   labs(x='# Clones', y='# Filtered clusters', color='# Reads')
+
+writeData(wb, 'Fig1D', as.data.frame(dat))
 ```
 
 cell switch: plot # clusters vs. # cells
 
 ```{r Fig1E, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
 # cell number experiment for  Fig. 1
-cellswitch.data <- read.xlsx('data/source_data.xlsx',sheet='cell numbers')
-
-ggplot(cellswitch.data %>%
+cellswitch.data <- read.xlsx('data/input_data.xlsx',sheet='cell numbers')
+dat <- cellswitch.data %>%
          dplyr::mutate(Donor=plyr::revalue(Donor,
                                            c('21084'='A',
                                              '21085'='B',
-                                             '21086'='C'))),
-       aes(x=ncells, y=clusters_raw)) + 
+                                             '21086'='C'))) %>%
+  dplyr::select(ncells, clusters_raw, Donor)
+ggplot(dat, aes(x=ncells, y=clusters_raw)) + 
   geom_abline(slope=1,intercept=0, size=.5, color='gray80') +
   geom_point(aes(color=Donor),size=.5) + 
   geom_smooth(size=.5, method='lm', alpha=.2, color='black') +
@@ -234,31 +281,35 @@ ggplot(cellswitch.data %>%
   theme(legend.position=c(.8,.25),
         legend.background = element_rect(fill=NA)) +
   labs(x='# Input cells', y='# Filtered clusters', color='Donor')
+
+writeData(wb, 'Fig1E', as.data.frame(dat))
 ```
 
 check reproducibility of clones in the cell switch experiment
 
 ```{r Fig1F, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
-meta_clustering <- read.xlsx('data/source_data.xlsx', sheet='meta-clustering')
-
-ggplot(meta_clustering %>% 
+meta_clustering <- read.xlsx('data/input_data.xlsx', sheet='meta-clustering')
+dat <- meta_clustering %>% 
          dplyr::mutate(ncells=factor(ncells, levels=c('50k','100k')),
                        Donor=ifelse(Donor=='mixed','mixed',paste0(Donor,'-',Donor)),
-                       mixing=gsub('-donor','',mixing)), 
-       aes(x=ncells,y=100*frac_clusters, fill=mixing)) + 
+                       mixing=gsub('-donor','',mixing)) %>%
+  dplyr::select(ncells, frac_clusters, mixing, Donor)
+ggplot(dat, aes(x=ncells,y=100*frac_clusters, fill=mixing)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA) +
   geom_jitter(aes(color=Donor, group=mixing), position=position_jitterdodge(dodge.width = .8, jitter.width=.05), size=1) +
   my_theme() +
   scale_fill_manual(values=c('gray','white'), guide=FALSE) +
   scale_color_manual(values=setNames(c(brewer.pal(3,'Set1'),'gray20'),c('A-A','B-B','C-C','mixed')),na.value='gray20') +
   labs(x='# cells',y='% shared clusters in pair', fill='pair', color='Donors')
+
+writeData(wb, 'Fig1F', as.data.frame(dat))
 ```
 
 show VDJ results: isotype frequencies
 
 ```{r Fig1G, fig.width=1.4 * fig_scale, fig.height=1.4 * fig_scale}
 # bulk VDJ results for Fig. 1
-VDJ_results <- read.xlsx('data/source_data.xlsx',sheet='VDJ data')
+VDJ_results <- read.xlsx('data/input_data.xlsx',sheet='VDJ data')
 
 get_gini <- function(x) {
   # calculate Gini coefficient of array x; see https://stackoverflow.com/questions/48999542/more-efficient-weighted-gini-coefficient-in-python
@@ -297,7 +348,7 @@ vdj_df <- rbind(swibrid_stats[,vdj_cols],vdj_stats[,vdj_cols]) %>%
   gather(metric,value, c(clusters_raw,alpha_ratio_clusters,cluster_gini_raw,cluster_inverse_simpson_raw)) %>%
   dplyr::mutate(ncells=factor(as.character(as.integer(ncells)), levels=c('50000','100000')))
 
-vdj_df %>% 
+dat <- vdj_df %>% 
   dplyr::mutate(ncells=factor(gsub('000$','k',ncells), levels=c('50k','100k')),
                 Donor=gsub('Donor ','',Donor)) %>%
   dplyr::filter(metric=='alpha_ratio_clusters') %>%
@@ -305,7 +356,13 @@ vdj_df %>%
   dplyr::summarise(mean_alpha_ratio=mean(value),
                    se_alpha_ratio=sd(value)/sqrt(length(value))) %>%
   pivot_wider(id_cols=c(ncells,Donor),names_from=method,values_from=c('mean_alpha_ratio','se_alpha_ratio')) %>%
-  ggplot(aes(x=mean_alpha_ratio_VDJ, y=mean_alpha_ratio_SWIBRID,
+  dplyr::select(mean_alpha_ratio_VDJ,
+                se_alpha_ratio_VDJ,
+                mean_alpha_ratio_SWIBRID,
+                se_alpha_ratio_SWIBRID,
+                Donor, ncells)
+
+ggplot(dat, aes(x=mean_alpha_ratio_VDJ, y=mean_alpha_ratio_SWIBRID,
              xmin=mean_alpha_ratio_VDJ-se_alpha_ratio_VDJ,
              xmax=mean_alpha_ratio_VDJ+se_alpha_ratio_VDJ,
              ymin=mean_alpha_ratio_SWIBRID-se_alpha_ratio_SWIBRID,
@@ -318,6 +375,8 @@ vdj_df %>%
   scale_color_brewer(palette='Set1') +
   theme(strip.background=element_blank()) +
   labs(y='Fraction IGHA SWIBRID',x='Fraction IGHA VDJ',shape='# cells')
+
+writeData(wb, 'Fig1G', as.data.frame(dat))
 ```
 
 # Figure 2 + supplements 
@@ -366,7 +425,7 @@ my_fitExtractVarPartModel <- function(formula, data) {
 }
 
 # HD data for Fig. 2
-HD.data <- read.xlsx('data/source_data.xlsx', sheet='HD data')
+HD.data <- read.xlsx('data/input_data.xlsx', sheet='HD data')
 
 HD.scaled <- HD.data %>%
   dplyr::filter(Cohort=='C1') %>%
@@ -412,13 +471,16 @@ cols.here <- c('cluster_entropy',
                'break_dispersion_SM',
                'break_dispersion_SA')
 
-HD.var %>%  dplyr::left_join(columns, by='col') %>%
+dat <- HD.var %>%  
+  dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(gsub('Residuals','unexplained',variable),
                                 levels=rev(c('Donor','Sex','Age','Batch','Sequencing','unexplained'))),
                 category=factor(category, levels=c('Structural','Context','Breaks','Diversity','Isotypes'))) %>%
   dplyr::filter(col %in% cols.here) %>%
   dplyr::mutate(col=factor(col, levels=cols.here)) %>%
-  ggplot(aes(x=col, y=100*variance, fill=variable)) + 
+  dplyr::select(col, variance, variable, category)
+
+ggplot(dat, aes(x=col, y=100*variance, fill=variable)) + 
   geom_col(width=.8) +
   my_theme() +
   facet_wrap(~category,scales='free_y', ncol=5) +
@@ -431,6 +493,8 @@ HD.var %>%  dplyr::left_join(columns, by='col') %>%
   scale_fill_manual(values=var_colors,
                     breaks=c('Donor','Sex','Age','Batch','Sequencing','unexplained')) +
   labs(x='', y='% Explained variance', fill='')
+
+writeData(wb, 'Fig2B', as.data.frame(dat))
 ```
 
 ```{r Fig2C, fig.width=1.5 * fig_scale,fig.height=1.75 * fig_scale}
@@ -448,11 +512,13 @@ selected.cols <- HD.var %>%
   dplyr::arrange(category) %>%
   dplyr::pull(col)
 
-HD.var %>%  dplyr::left_join(columns, by='col') %>%
+dat <- HD.var %>%  
+  dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(gsub('Residuals','unexplained',variable),
                                 levels=c('Sequencing','Batch','Donor','Sex','Age'))) %>%
-  dplyr::filter(variable!='unexplained', category %in% c('Isotypes','Diversity','Structural','Context','Breaks','Variants')) %>%
-  ggplot(aes(x=variable, y=100*variance)) + 
+  dplyr::filter(variable!='unexplained', category %in% c('Isotypes','Diversity','Structural','Context','Breaks','Variants')) 
+
+ggplot(dat, aes(x=variable, y=100*variance)) + 
   geom_boxplot(aes(fill=variable), outlier.shape=NA, lwd=.5, legend=FALSE) + 
   geom_jitter(aes(color=ifelse(col %in% selected.cols, 'selected','unused')), position=position_jitter(width=.25), size=.25) +
   annotate("rect", xmin = .5, xmax = 1.5, ymax = 100*sequencing_cutoff, ymin = 0, fill='orangered', linetype=1, size=.25, alpha=.25) +
@@ -468,17 +534,20 @@ HD.var %>%  dplyr::left_join(columns, by='col') %>%
   scale_fill_manual(values=var_colors, guide='none') +
   scale_color_manual(values=c('unused'='black','selected'='orangered')) +
   labs(x='', y='% Explained variance', fill='', color='')
+
+writeData(wb, 'Fig2C', as.data.frame(dat))
 ```
 
 we now have `r length(selected.cols)` robust features
 
 ```{r FigS2F,fig.width=3.5 * fig_scale,fig.height=1.7 * fig_scale}
-HD.var %>%  
+dat <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable, 
                                 levels=c('Donor','Sex','Age','Batch','Sequencing','Residuals'))) %>%
   dplyr::filter(variable!='Residuals', category %in% c('Isotypes','Diversity','Structural','Context','Breaks','Variants')) %>%
-  ggplot(aes(x=category, y=100*variance, fill=variable)) + 
+  dplyr::select(category, variance, variable, col)
+ggplot(dat, aes(x=category, y=100*variance, fill=variable)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
   geom_jitter(position=position_jitterdodge(jitter.width=.3,dodge.width=.8), size=.25) +
   my_theme() +
@@ -488,23 +557,25 @@ HD.var %>%
         legend.box='horizontal') +
   scale_fill_manual(values=var_colors) +
   labs(x='', y='% Explained variance', fill='')
+
+writeData(wb, 'FigS2F', as.data.frame(dat))
 ```
 
 confirm that downsampled diversity measures are better
 
 ```{r FigS2I_1, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
-tmp <- HD.var %>%  
+dat1 <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable,
                                 levels=rev(c('Donor','Batch','Sequencing','Residuals')))) %>%
   dplyr::filter(variable!='Residuals', category %in% c('Diversity','Diversity_raw')) 
 
-pvals <- tmp %>%
+pvals <- dat1 %>%
   dplyr::group_by(variable) %>%
   dplyr::do(wc=wilcox.test(variance ~ category, data=.)) %>%
   dplyr::summarise(variable, p=wc$p.value)
 
-ggplot(tmp,aes(x=variable, y=100*variance, fill=category)) + 
+ggplot(dat1,aes(x=variable, y=100*variance, fill=category)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
   geom_jitter(position=position_jitterdodge(jitter.width=.3,dodge.width=.8), size=.5) +
   geom_text(data=pvals, aes(x=variable, label=stars.pval(p)), y=Inf, inherit.aes=FALSE, size=5) +
@@ -523,18 +594,18 @@ ggplot(tmp,aes(x=variable, y=100*variance, fill=category)) +
 confirm that using isotype-specific context features doesn't help
 
 ```{r FigS2I_2, fig.width=1.4 * fig_scale, fig.height=1.7 * fig_scale}
-tmp <- HD.var %>%  
+dat2 <- HD.var %>%  
   dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable,
                                 levels=rev(c('Donor','Batch','Sequencing','Residuals')))) %>%
   dplyr::filter(variable!='Residuals', category %in% c('Context','Context_isotype'))
 
-pvals <- tmp %>% 
+pvals <- dat2 %>% 
   dplyr::group_by(variable) %>%
   dplyr::do(wc=wilcox.test(variance ~ category, data=., exact=FALSE)) %>%
   dplyr::summarise(variable, p=wc$p.value)
 
-ggplot(tmp, aes(x=variable, y=100*variance, fill=category)) + 
+ggplot(dat2, aes(x=variable, y=100*variance, fill=category)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
   geom_jitter(position=position_jitterdodge(jitter.width=.3,dodge.width=.8), size=.5) +
   geom_text(data=pvals, aes(x=variable, label=stars.pval(p)), y=Inf, inherit.aes=FALSE, size=5) +
@@ -553,7 +624,7 @@ ggplot(tmp, aes(x=variable, y=100*variance, fill=category)) +
 test the effects of averaging over clusters or reads
 
 ```{r FigS2I_3, fig.width=1.4 * fig_scale,fig.height=1.7 * fig_scale}
-HD.data.br <- read.xlsx('data/source_data.xlsx', sheet='HD data by reads')
+HD.data.br <- read.xlsx('data/input_data.xlsx', sheet='HD data by reads')
 
 HD.scaled.br <- HD.data.br %>%
   dplyr::filter(Cohort=='C1') %>%
@@ -574,7 +645,7 @@ HD.var.br <- sapply(unique(HD.scaled.br$feature),
 
 fts <- intersect(HD.var$col, HD.var.br$col)
 
-tmp <- rbind(HD.var %>% 
+dat3 <- rbind(HD.var %>% 
                dplyr::mutate(averaging='Clusters'), 
              HD.var.br %>%
                dplyr::mutate(averaging='Reads')) %>% 
@@ -585,14 +656,16 @@ tmp <- rbind(HD.var %>%
   dplyr::filter(variable!='Residuals', 
                 category %in% c("Context","Breaks"),
                 variable %in% c("Donor", "Batch", "Sequencing")) %>% 
-  dplyr::arrange(col,averaging,variable) 
+  dplyr::mutate(category=averaging) %>%
+  dplyr::select(col, variable, variance, category) %>%
+  dplyr::arrange(col,category,variable) 
 
-pvals <- tmp %>%
+pvals <- dat3 %>%
   dplyr::group_by(variable) %>%
-  dplyr::do(wc=wilcox.test(variance ~ averaging, paired=TRUE, data=., exact=FALSE)) %>%
+  dplyr::do(wc=wilcox.test(variance ~ category, paired=TRUE, data=., exact=FALSE)) %>%
   dplyr::summarise(variable, p=wc$p.value)
 
-ggplot(tmp, aes(x=variable, y=100*variance, fill=averaging)) + 
+ggplot(dat3, aes(x=variable, y=100*variance, fill=category)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
   geom_jitter(position=position_jitterdodge(jitter.width=.1,dodge.width=.8), size=.5) +
   geom_text(data=pvals, aes(x=variable, label=stars.pval(p)), y=Inf, inherit.aes=FALSE, size=5) +
@@ -604,14 +677,20 @@ ggplot(tmp, aes(x=variable, y=100*variance, fill=averaging)) +
         legend.box='horizontal') +
   scale_fill_manual(values=c('Clusters'='aquamarine4','Reads'='darkseagreen1')) +
   labs(x='', y='% Explained variance', fill='Averages over')
+
+writeData(wb, 'FigS2I', rbind(dat1 %>% dplyr::mutate(panel='FigS2I_1'), 
+                              dat2 %>% dplyr::mutate(panel='FigS2I_2'), 
+                              dat3 %>% dplyr::mutate(panel='FigS2I_3')) %>% as.data.frame())
 ```
 
 show top examples for features related to age or sex
 
 ```{r Fig2E, fig.width=.75 * fig_scale, fig.height=1.5 * fig_scale}
-col <- 'break_dispersion_SG1'
-HD.data %>%
-  dplyr::filter(feature == col, Cohort=='C1') %>%
+dat <- HD.data %>%
+  dplyr::filter(feature %in% c('break_dispersion_SG1','occupancy_top_cluster'), Cohort=='C1') %>%
+  dplyr::select(Age, value, feature, Sex)
+
+dat %>% dplyr::filter(feature == 'break_dispersion_SG1') %>%
   ggplot(aes(x=str_to_title(Sex), y=value)) + 
   geom_boxplot(outlier.shape=NA, lwd=.5) +
   geom_jitter(width=.2, size=.1) + 
@@ -621,11 +700,9 @@ HD.data %>%
   coord_cartesian(clip='off') +
   theme(legend.position='none',
         axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
-  labs(x='',y=col)
+  labs(x='',y='break_dispersion_SG1')
 
-col <- 'occupancy_top_cluster'
-HD.data %>%
-  dplyr::filter(feature==col, Cohort=='C1') %>%
+dat %>% dplyr::filter(feature == 'occupancy_top_cluster') %>%
   ggplot(aes(x=Age, y=value)) + 
   geom_boxplot(outlier.shape=NA, lwd=.5) +
   geom_jitter(width=.2, size=.1) + 
@@ -635,7 +712,9 @@ HD.data %>%
   coord_cartesian(clip='off') +
   theme(legend.position='none',
         axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
-  labs(x='',y=col)
+  labs(x='',y='occupancy_top_cluster')
+
+writeData(wb, 'Fig2E', as.data.frame(dat))
 ```
 
 HD feature correlation (on FB data)
@@ -652,7 +731,7 @@ FB.X <- HD.data %>%
 R <- cor(FB.X[,selected.cols], use='na.or.complete')
 io <- rownames(R)[order.hclust(hclust(dist(R)))]
 
-tmp <- as.data.frame(R) %>% 
+dat <- as.data.frame(R) %>% 
   tibble::rownames_to_column('var2') %>%
   gather(var1, R, -var2) %>%
   dplyr::left_join(columns, by=c('var1'='col')) %>%
@@ -664,14 +743,14 @@ tmp <- as.data.frame(R) %>%
   dplyr::mutate(var1=factor(var1, levels=io),
                 var2=factor(var2, levels=io),
                 i1=as.vector(sapply(var1, function(x) which(io==x))),
-                i2=as.vector(sapply(var2, function(x) which(io==x)))) 
+                i2=as.vector(sapply(var2, function(x) which(io==x)))) %>%
+  dplyr::filter(i1 <= i2) %>%
+  dplyr::select(var1, var2, R)
 
 anno_grob_y <- grid::rectGrob(x=1:length(io), y=0, gp=gpar(col=NA, fill=col_cols[io], alpha=.5))
 anno_grob_x <- grid::rectGrob(y=1:length(io), x=0, gp=gpar(col=NA, fill=col_cols[io], alpha=.5))
 
-ggplot(tmp %>%
-  dplyr::filter(i1 <= i2),
-  aes(x=var1,y=var2,fill=R)) + 
+ggplot(dat, aes(x=var1,y=var2,fill=R)) + 
   geom_tile() +
   scale_fill_gradient2(low='blue3',high='red3',mid='gray',limits=c(-1,1)) + 
   my_theme() +
@@ -683,6 +762,7 @@ ggplot(tmp %>%
   annotation_custom(grob=anno_grob_y, xmin = 0, xmax = 1, ymin = length(io) + 10, ymax = length(io) + 28) +
   annotation_custom(grob=anno_grob_x, xmin = -8, xmax = 9, ymin = 0, ymax = 1)
 
+writeData(wb, 'FigS2H', as.data.frame(dat)) 
 ```
 
 distributions of features in the two HD cohorts
@@ -702,9 +782,11 @@ cohort.data <- HD.data %>%
   dplyr::mutate(feature=factor(feature, levels=cols.here.human)) %>%
   dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural')) 
   
-ggplot(cohort.data, aes(x=Cohort, y=value)) + 
+dat <- cohort.data %>%
+  dplyr::select(Cohort, value, Donor, feature, category)
+ggplot(dat, aes(x=Cohort, y=value)) + 
   geom_boxplot(aes(group=Cohort), position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25, fill='gray80') + 
-  geom_pointrange(data=cohort.data %>%
+  geom_pointrange(data=dat %>%
                     dplyr::group_by(Donor,feature,category,Cohort) %>%
                     dplyr::summarise(se=sd(value)/sqrt(n()),
                                      value=mean(value),
@@ -719,14 +801,16 @@ ggplot(cohort.data, aes(x=Cohort, y=value)) +
   theme(legend.position='none',
         axis.text.x=element_text(angle=90, hjust=1, vjust=.5)) +
   labs(x='',y='')
+
+writeData(wb, 'Fig2D', as.data.frame(dat))
 ```
 
 same thing for mouse tissue and Vincendeau
 
 ```{r Fig2F, fig.width=4. * fig_scale, fig.height=1.75 * fig_scale}
-mouse.data <- read.xlsx('data/source_data.xlsx', sheet='mouse tissues') %>%
+mouse.data <- read.xlsx('data/input_data.xlsx', sheet='mouse tissues') %>%
   tibble::column_to_rownames('Sample')
-vincendeau.data <- read.xlsx('data/source_data.xlsx', sheet='Vincendeau data') %>%
+vincendeau.data <- read.xlsx('data/input_data.xlsx', sheet='Vincendeau data') %>%
   tibble::column_to_rownames('Sample')
 
 cols.here.mouse <- c('pct_inversions',
@@ -748,8 +832,10 @@ cohort.data <- rbind(mouse.data %>%
   dplyr::mutate(variable=factor(variable, levels=cols.here.mouse)) %>%
   dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural'))
 
-cohort.data %>%
-  ggplot(aes(x=Cohort, y=value, fill=species)) + 
+dat <- cohort.data %>%
+  dplyr::select(Cohort, value, species, variable)
+
+ggplot(dat, aes(x=Cohort, y=value, fill=species)) + 
   geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) + 
   geom_point(position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) + 
   my_theme() +
@@ -762,13 +848,15 @@ cohort.data %>%
                    labels=c('Lymph node','Splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
                    limits=c('lymph node','splenocytes','','WT','Xlf','Shld1','Shld1_Xlf'), drop=FALSE) +
   labs(x='',y='', fill='') 
+
+writeData(wb, 'Fig2F', as.data.frame(dat))
 ```
 
 check length dependence of Vincendeau data
 
 ```{r FigS2J, fig.width=1.5 * fig_scale, fig.height=1.75 * fig_scale}
 cols.here.mouse <- c('read_length_SG_mean')
-cohort.data <- rbind(mouse.data %>%
+dat <- rbind(mouse.data %>%
                        dplyr::mutate(species='mouse tissue',
                                      Cohort=material) %>%
                        dplyr::select(species, Cohort, cols.here.mouse),
@@ -780,10 +868,10 @@ cohort.data <- rbind(mouse.data %>%
   gather(variable, value, cols.here.mouse) %>%
   dplyr::select(variable, value, species, Cohort) %>%
   dplyr::left_join(columns, by=c('variable'='col')) %>%
-  dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural'))
+  dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural')) %>%
+  dplyr::select(Cohort, value, species, variable)
 
-cohort.data %>%
-  ggplot(aes(x=Cohort, y=value, fill=species)) + 
+ggplot(dat, aes(x=Cohort, y=value, fill=species)) + 
   geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) + 
   geom_point(position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) + 
   my_theme() +
@@ -796,12 +884,15 @@ cohort.data %>%
                    labels=c('Lymph node','Splenocytes','WT','Xlf','Shld1','Shld1_Xlf'),
                    limits=c('lymph node','splenocytes','','WT','Xlf','Shld1','Shld1_Xlf'), drop=FALSE) +
   labs(x='',y='', fill='')
+
+writeData(wb, 'FigS2J', as.data.frame(dat))
 ```
+
 
 compare minION against pacBio in HD cohort for selected features
 
 ```{r FigS2G, fig.width=2.75 * fig_scale, fig.height=5 * fig_scale}
-tmp <- HD.scaled %>%
+dat <- HD.scaled %>%
   dplyr::filter(feature %in% selected.cols, Batch=='20230313') %>%
   dplyr::select(feature,value,Sequencing,Donor) %>%
   spread(Sequencing,value) %>% 
@@ -811,17 +902,18 @@ tmp <- HD.scaled %>%
   dplyr::mutate(feature=factor(feature, levels=columns %>% 
                                  dplyr::filter(col %in% selected.cols) %>% 
                                  dplyr::pull(col))) %>%
+  dplyr::select(minION, pacBio, feature, category) %>%
   dplyr::arrange(feature)
 
-cols_shapes <- tmp %>% 
+cols_shapes <- dat %>% 
   dplyr::distinct(category, feature) %>%
   dplyr::mutate(var_col=cat_cols[as.character(category)]) %>%
   dplyr::group_by(category) %>%
   dplyr::mutate(var_ind=1:n()) %>%
-  dplyr::mutate(feature=factor(feature, levels=levels(tmp$feature))) %>% 
+  dplyr::mutate(feature=factor(feature, levels=levels(dat$feature))) %>% 
   dplyr::arrange(feature)
 
-ggplot(tmp,aes(x=minION,y=pacBio)) +
+ggplot(dat,aes(x=minION,y=pacBio)) +
   geom_abline(slope=1,intercept=0,color='gray',linewidth=.5) +
   geom_point(aes(color=feature,shape=feature),size=1) + 
   my_theme() +
@@ -840,6 +932,8 @@ ggplot(tmp,aes(x=minION,y=pacBio)) +
   theme(legend.position='bottom',
         legend.key.size=unit(1.5,'mm'),
         legend.key.spacing.y=unit(0, 'mm'))
+
+writeData(wb, 'FigS2G', as.data.frame(dat))
 ```
 
 show a PCA of the Vincendeau data
@@ -864,9 +958,12 @@ pcarot <- data.frame(coef=pca$rot[,'PC1'],
   dplyr::arrange(coef) %>%
   dplyr::mutate(col=factor(col, levels=col)) 
 
-ggplot(pcadat,aes(x=PC1,y=PC2, color=Genotype)) +
+dat <- pcadat %>%
+  dplyr::select(PC1, PC2, Genotype)
+
+ggplot(dat,aes(x=PC1,y=PC2, color=Genotype)) +
   geom_point(size=1) +
-  geom_polygon(data = pcadat %>%
+  geom_polygon(data = dat %>%
                  dplyr::group_by(Genotype) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=Genotype)) +
   my_theme() +
@@ -878,6 +975,8 @@ ggplot(pcadat,aes(x=PC1,y=PC2, color=Genotype)) +
        color='',shape='',fill='')  +
   scale_color_manual(values=genotype_colors) +
   scale_fill_manual(values=genotype_colors)
+
+writeData(wb, 'Fig2G', as.data.frame(dat), rowNames=TRUE)
 ```
 
 (this PCA uses `r dim(vincendeau.X)[2]` features)
@@ -914,8 +1013,11 @@ comparisons <- list(c('WT','Xlf'),
                     c('WT','Shld1_Xlf'),
                     c('Shld1','Xlf'))
 
+dat <- tmp %>%
+  dplyr::select(-c(var_col,category))
+
 plots <- lapply(comparisons, function(x) 
-  tmp %>%
+  dat %>%
     dplyr::mutate_(mean1=paste0('mean_',x[[1]]),
                    mean2=paste0('mean_',x[[2]]),
                    se1=paste0('se_',x[[1]]),
@@ -957,16 +1059,18 @@ plots <- lapply(comparisons, function(x)
 plot_grid(plot_grid(plotlist=lapply(plots, function(x) x + theme(legend.position='none')), 
                     ncol=4, align='vh'),
           get_legend(plots[[1]] + theme(legend.margin=margin(0,0,0,0,'mm'))), ncol=1, rel_heights=c(.65,.35))
+
+writeData(wb, 'Fig2H', as.data.frame(dat))
 ```
 # Figure 3 + supplement (CH12)
 
 ```{r FigS3A, fig.width=5.5 * fig_scale, fig.height=4.5 * fig_scale}
-HTGTS.data <- read.xlsx("data/source_data.xlsx", sheet='HTGTS data') %>%
+HTGTS.data <- read.xlsx("data/input_data.xlsx", sheet='HTGTS data') %>%
   tibble::column_to_rownames('Sample')
 
 HTGTS.cols <- intersect(colnames(HTGTS.data),selected.cols.mouse)
 
-tmp <- HTGTS.data %>%
+dat <- HTGTS.data %>%
   dplyr::mutate(celltype=gsub('spleen','Spleen',celltype)) %>%
   gather(variable, value, HTGTS.cols) %>%
   dplyr::group_by(variable, celltype) %>%
@@ -983,12 +1087,12 @@ tmp <- HTGTS.data %>%
                 var_col=cat_cols[category]) %>%
   dplyr::arrange(variable)
 
-cols_shapes <- tmp %>% 
+cols_shapes <- dat %>% 
   dplyr::distinct(category, variable) %>%
   dplyr::mutate(var_col=cat_cols[as.character(category)]) %>%
   dplyr::group_by(category) %>%
   dplyr::mutate(var_ind=1:n()) %>%
-  dplyr::mutate(variable=factor(variable, levels=levels(tmp$variable))) %>% 
+  dplyr::mutate(variable=factor(variable, levels=levels(dat$variable))) %>% 
   dplyr::arrange(variable)
 
 comparisons <- list(c('CH12','WT','Atm'),
@@ -998,7 +1102,7 @@ comparisons <- list(c('CH12','WT','Atm'),
                     c('Spleen','WT','Trp53bp1'))
 
 plots <- lapply(comparisons, function(x) 
-  tmp %>%
+  dat %>%
     dplyr::mutate_(mean1=paste0('mean_',x[[1]],'_',x[[2]]),
                    mean2=paste0('mean_',x[[1]],'_',x[[3]]),
                    se1=paste0('se_',x[[1]],'_',x[[2]]),
@@ -1040,6 +1144,8 @@ plots <- lapply(comparisons, function(x)
 plot_grid(plot_grid(plotlist=lapply(plots, function(x) x + theme(legend.position='none')), 
                     ncol=3, align='vh'),
           get_legend(plots[[1]] + theme(legend.margin=margin(0,0,0,0,'mm'))), ncol=1, rel_heights=c(.65,.35))
+
+writeData(wb, 'FigS3A', dat %>% dplyr::select(-c(category, var_col)) %>% as.data.frame())
 ```
 
 ```{r FigS3C, fig.width=3.75 * fig_scale, fig.height=2.5 * fig_scale}
@@ -1048,7 +1154,7 @@ cols.here.HTGTS <- c('homology',
                      'acceptor_score_W',
                      'donor_score_W')
 
-HTGTS.data %>%
+dat <- HTGTS.data %>%
   dplyr::mutate(celltype=factor(gsub('spleen','Spleen',celltype), levels=c('CH12','Spleen')),
                 Genotype=factor(Genotype, levels=c('WT','Atm','Lig4','Trp53bp1'))) %>%
   gather(variable, value, cols.here.HTGTS) %>%
@@ -1056,7 +1162,9 @@ HTGTS.data %>%
   dplyr::left_join(columns, by=c('variable'='col')) %>%
   dplyr::mutate(variable=factor(variable, levels=cols.here.HTGTS)) %>%
   dplyr::filter(category %in% c('Diversity','Isotypes','Breaks','Context','Structural')) %>%
-  ggplot(aes(x=Genotype, y=value, fill=Genotype)) + 
+  dplyr::select(Genotype, value, celltype, variable)
+
+ggplot(dat, aes(x=Genotype, y=value, fill=Genotype)) + 
   geom_boxplot(position=position_dodge(width=.75), width=.7, outlier.shape=NA, lwd=.25) + 
   geom_point(position=position_jitterdodge(jitter.width=.2, dodge.width=.75, jitter.height = 0), size=.5) + 
   my_theme() +
@@ -1067,12 +1175,14 @@ HTGTS.data %>%
         legend.position='none') +
   scale_fill_manual(values=genotype_colors) +
   labs(x='',y='', fill='') 
+
+writeData(wb, 'FigS3C', as.data.frame(dat))
 ```
 
 show homology values for HTGTS data
 
 ```{r FigS3D, fig.width=3.25 * fig_scale, fig.height=1.25 * fig_scale}
-read.xlsx('data/source_data.xlsx', sheet='HTGTS homology') %>%
+dat <- read.xlsx('data/input_data.xlsx', sheet='HTGTS homology') %>%
   dplyr::mutate(Genotype=factor(Genotype, levels=c('WT','Atm','Lig4','Trp53bp1')),
                 celltype=gsub('spleen','Spleen',celltype),
                 n_homology=as.numeric(n_homology)) %>%
@@ -1080,7 +1190,9 @@ read.xlsx('data/source_data.xlsx', sheet='HTGTS homology') %>%
   dplyr::group_by( celltype, Genotype, isotype, n_homology) %>%
   dplyr::summarise(mean_frac=mean(frac),
                    se_frac=sd(frac)/sqrt(n())) %>%
-  ggplot(aes(x=n_homology, y=mean_frac, color=Genotype)) +
+  dplyr::select(n_homology, mean_frac, se_frac, Genotype, celltype)
+
+ggplot(dat, aes(x=n_homology, y=mean_frac, color=Genotype)) +
   geom_line(aes(group=Genotype)) +
   geom_errorbar(aes(ymin=mean_frac-se_frac,ymax=mean_frac+se_frac),width=0) +
   ggh4x::facet_nested(. ~ celltype  + isotype , scales='free', space='free_x', nest_line = TRUE, switch='y') +
@@ -1088,6 +1200,8 @@ read.xlsx('data/source_data.xlsx', sheet='HTGTS homology') %>%
   scale_color_manual(values=genotype_colors) +
   labs(color='', y='Fraction junctions') +
   coord_cartesian(clip='off') 
+
+writeData(wb, 'FigS3D', as.data.frame(dat))
 ```
 
 ```{r FigS3B, fig.width=2.5 * fig_scale, fig.height=3. * fig_scale}
@@ -1105,9 +1219,14 @@ pcadat.CH12 <- cbind(pca.CH12$x,HTGTS.meta[row.names(HTGTS.CH12.X),])
 pca.spleen <- prcomp(HTGTS.spleen.X)
 pcadat.spleen <- cbind(pca.spleen$x,HTGTS.meta[row.names(HTGTS.spleen.X),])
 
-p1 <- ggplot(pcadat.CH12,aes(x=PC1,y=PC2, color=Genotype)) +
+dat <- rbind(pcadat.CH12 %>% dplyr::mutate(material='CH12') %>%
+               dplyr::select(PC1, PC2, Genotype, material),
+             pcadat.spleen %>% dplyr::mutate(material='spleen') %>%
+               dplyr::select(PC1, PC2, Genotype, material))
+
+p1 <- ggplot(dat %>% dplyr::filter(material=='CH12'),aes(x=PC1,y=PC2, color=Genotype)) +
   geom_point(size=1) +
-  geom_polygon(data = pcadat.CH12 %>%
+  geom_polygon(data = dat %>% dplyr::filter(material=='CH12') %>%
                  dplyr::group_by(Genotype) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=Genotype)) +
   my_theme() +
@@ -1120,9 +1239,9 @@ p1 <- ggplot(pcadat.CH12,aes(x=PC1,y=PC2, color=Genotype)) +
   scale_color_manual(values=genotype_colors) +
   scale_fill_manual(values=genotype_colors)
 
-p2 <- ggplot(pcadat.spleen,aes(x=PC1,y=PC2, color=Genotype)) +
+p2 <- ggplot(dat %>% dplyr::filter(material=='spleen'),aes(x=PC1,y=PC2, color=Genotype)) +
   geom_point(size=1) +
-  geom_polygon(data = pcadat.spleen %>%
+  geom_polygon(data = dat %>% dplyr::filter(material=='spleen') %>%
                  dplyr::group_by(Genotype) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=Genotype)) +
   my_theme() +
@@ -1136,6 +1255,8 @@ p2 <- ggplot(pcadat.spleen,aes(x=PC1,y=PC2, color=Genotype)) +
   scale_fill_manual(values=genotype_colors)
 
 plot_grid(p1,p2, ncol=1, align='vh')
+
+writeData(wb, 'FigS3B', as.data.frame(dat), rowNames=TRUE)
 ```
 
 these PCAs use `r dim(HTGTS.spleen.X)[2]` (spleen) and `r dim(HTGTS.CH12.X)[2]` (CH12) features
@@ -1143,11 +1264,11 @@ these PCAs use `r dim(HTGTS.spleen.X)[2]` (spleen) and `r dim(HTGTS.CH12.X)[2]` 
 show a PCA of spleen and lymph node data together with PP and CH12 using all switch regions or only Sm+Sa
 
 ```{r Fig3B, fig.width=3.5 * fig_scale, fig.height=1.75 * fig_scale}
-CH12.data <- read.xlsx('data/source_data.xlsx',sheet='CH12 data') %>%
+CH12.data <- read.xlsx('data/input_data.xlsx',sheet='CH12 data') %>%
   tibble::column_to_rownames('Sample')
-CH12.data.noSg <- read.xlsx('data/source_data.xlsx',sheet='CH12 data (no Sg)') %>%
+CH12.data.noSg <- read.xlsx('data/input_data.xlsx',sheet='CH12 data (no Sg)') %>%
   tibble::column_to_rownames('Sample')
-mouse.data.noSg <- read.xlsx('data/source_data.xlsx',sheet='mouse tissues (no Sg)')
+mouse.data.noSg <- read.xlsx('data/input_data.xlsx',sheet='mouse tissues (no Sg)')
 
 mouse.cols <-  intersect(selected.cols.mouse, intersect(colnames(CH12.data),
                                                         colnames(mouse.data))) 
@@ -1167,18 +1288,6 @@ pcadat <- cbind(pca$x,data.frame(material=c(rep('CH12',sum(CH12.take)),
                                  Genotype=c(CH12.data$Genotype[CH12.take],
                                             rep('WT',sum(mouse.take)))))
 
-p1 <- ggplot(pcadat,aes(x=PC1,y=PC2, color=material)) +
-  geom_point(aes(shape=Genotype),size=1) +
-  geom_polygon(data = pcadat %>%
-                 dplyr::group_by(material) %>%
-                 dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=material)) +
-  my_theme() +
-  scale_fill_manual(values=tissue_colors) +
-  scale_color_manual(values=tissue_colors) +
-  labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
-       y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
-       color='',shape='',fill='', title='all switch regions') 
-
 CH12.take.noSg <- rep(TRUE, dim(CH12.data.noSg)[1]) 
 mouse.take.noSg <- rep(TRUE, dim(mouse.data.noSg)[1]) 
 mouse.cols.noSg <-  grep('SG|Sg|sequential',mouse.cols,
@@ -1197,9 +1306,31 @@ pcadat.noSg <- cbind(pca.noSg$x,data.frame(material=c(rep('CH12',sum(CH12.take.n
                                            Genotype=c(CH12.data.noSg$Genotype[CH12.take.noSg],
                                                       rep('WT',sum(mouse.take.noSg)))))
 
-p2 <- ggplot(pcadat.noSg,aes(x=PC1,y=PC2, color=material)) +
+dat <- rbind(pcadat %>%
+               dplyr::mutate(set='all regions')  %>%
+               dplyr::select(PC1, PC2, material, Genotype, set),
+             pcadat.noSg %>%
+               dplyr::mutate(set='no Sg') %>%
+               dplyr::select(PC1, PC2, material, Genotype, set))
+
+p1 <- ggplot(dat %>% dplyr::filter(set=='all regions'),aes(x=PC1,y=PC2, color=material)) +
+  geom_point(aes(shape=Genotype),size=1) +
+  geom_polygon(data = dat %>%
+                 dplyr::filter(set=='all regions') %>%
+                 dplyr::group_by(material) %>%
+                 dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=material)) +
+  my_theme() +
+  scale_fill_manual(values=tissue_colors) +
+  scale_color_manual(values=tissue_colors) +
+  labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
+       y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
+       color='',shape='',fill='', title='all switch regions') 
+
+
+p2 <- ggplot(dat %>% dplyr::filter(set=='no Sg'),aes(x=PC1,y=PC2, color=material)) +
   geom_point(aes(shape=Genotype), size=1) +
-  geom_polygon(data = pcadat.noSg %>%
+  geom_polygon(data = dat %>%
+                 dplyr::filter(set=='no Sg') %>%
                  dplyr::group_by(material) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=material)) +
   my_theme() +
@@ -1214,6 +1345,8 @@ plot_grid(p1 + theme(legend.position='none'),
           get_legend(p1 + theme(legend.box='vertical')),
           rel_widths=c(.4,.4,.2),
           ncol=3)
+
+writeData(wb, 'Fig3B', as.data.frame(dat), rowNames=TRUE)
 ```
 
 (this PCA uses `r dim(mouse.X)[2]` and `r dim(mouse.X.noSg)[2]` features)
@@ -1235,7 +1368,7 @@ CH12.meta <- CH12.data %>%
                 Genotype=factor(Genotype,levels=CH12.genotypes)) %>%
   dplyr::select(Batch,Genotype)
 
-tmp <- CH12.data %>% 
+dat <- CH12.data %>% 
   dplyr::filter(Batch != '20240830') %>%
   dplyr::select(Genotype,CH12.features) %>%
   dplyr::mutate(Genotype=factor(Genotype,levels=CH12.genotypes)) %>%
@@ -1243,9 +1376,10 @@ tmp <- CH12.data %>%
   dplyr::mutate(ng=n(),
                 Genotype_new=paste0(Genotype,' (n=',ng,')')) %>%
   gather(col,value,-c(Genotype,ng,Genotype_new)) %>% 
-  dplyr::mutate(col=factor(col, levels=CH12.features))
+  dplyr::mutate(col=factor(col, levels=CH12.features)) %>%
+  dplyr::select(Genotype, value, col)
 
-ggplot(tmp, aes(x=Genotype,y=value,fill=Genotype)) + 
+ggplot(dat, aes(x=Genotype,y=value,fill=Genotype)) + 
   geom_boxplot(outlier.shape=NA, lwd=.5) + 
   geom_jitter(width=.1,height=0,size=.5) + 
   stat_compare_means(ref.group='WT',method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2) +
@@ -1258,6 +1392,8 @@ ggplot(tmp, aes(x=Genotype,y=value,fill=Genotype)) +
   scale_fill_manual(values=genotype_colors) +
   scale_x_discrete(breaks=tmp$Genotype,labels=tmp$Genotype_new) +
   labs(x='',y='', color='# Reads')
+
+writeData(wb, 'Fig3D', as.data.frame(dat))
 ```
 
 a PCA with all selected features
@@ -1273,9 +1409,12 @@ CH12.cols <- CH12.cols[colSums(is.na(CH12.X))==0]
 pca <- prcomp(CH12.X[CH12.samples,CH12.cols])
 pcadat <- cbind(pca$x,CH12.meta[CH12.samples,]) 
 
-ggplot(pcadat,aes(x=PC1,y=PC2, color=Genotype)) +
+dat <- pcadat %>%
+  dplyr::select(PC1, PC2, Genotype)
+
+ggplot(dat,aes(x=PC1,y=PC2, color=Genotype)) +
   geom_point(size=2) +
-  geom_polygon(data = pcadat %>%
+  geom_polygon(data = dat %>%
                  dplyr::group_by(Genotype) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.25, aes(fill=Genotype)) +
   my_theme() +
@@ -1286,6 +1425,8 @@ ggplot(pcadat,aes(x=PC1,y=PC2, color=Genotype)) +
        color='',shape='',fill='') +
   scale_fill_manual(values=genotype_colors) +
   scale_color_manual(values=genotype_colors) 
+
+writeData(wb, 'Fig3E', as.data.frame(dat), rowNames=TRUE)
 ```
 
 (this PCA uses `r dim(CH12.X)[2]` features)
@@ -1342,6 +1483,10 @@ hm1 <- Heatmap(t(CH12.X[samples,CH12.cols]),
 
 draw(hm1, heatmap_legend_side = "bottom", annotation_legend_side = "bottom")
 
+dat <- rbind(t(CH12.meta[samples, c('Genotype','Batch')]),
+             t(CH12.X[samples,CH12.cols]))
+
+writeData(wb, 'Fig3C', as.data.frame(dat), rowNames=TRUE)
 ```
 
 do ridge regression
@@ -1366,7 +1511,7 @@ cv_model <- cv.glmnet(as.matrix(CH12.X[train,]), CH12.meta$Genotype[train], alph
 mod <- glmnet(as.matrix(CH12.X[train,]), CH12.meta$Genotype[train], alpha = 0, family = "multinomial",
               lambda = cv_model$lambda.min)
 
-tmp <- as.data.frame(predict(mod, type = "response", 
+dat <- as.data.frame(predict(mod, type = "response", 
                               newx=as.matrix(CH12.X[test,]))) %>%
   tibble::rownames_to_column('sample') %>% 
   gather(gt,p,-sample) %>% 
@@ -1382,11 +1527,13 @@ tmp <- as.data.frame(predict(mod, type = "response",
   dplyr::ungroup() %>%
   dplyr::arrange(Genotype) %>%
   dplyr::mutate(sample=factor(gsub('20240830_','',sample),
-                              levels=gsub('20240830_','',unique(sample)))) 
-ggplot(tmp, aes(x=prediction,y=sample,
+                              levels=gsub('20240830_','',unique(sample)))) %>%
+  dplyr::select(prediction, sample, p, c)
+
+ggplot(dat, aes(x=prediction,y=sample,
                 label=round(p,2),fill=p,color=c)) + 
   geom_tile() + 
-  geom_text(data=. %>% dplyr::filter(p > .25),
+  geom_text(data=dat %>% dplyr::filter(p > .25),
             size=2) +
   scale_fill_gradient(low='white',high='steelblue3') +
   scale_color_manual(values=c(black='black',green='darkgreen',red='red3')) +
@@ -1396,6 +1543,8 @@ ggplot(tmp, aes(x=prediction,y=sample,
         axis.text.y = element_blank(),
         axis.text.x=element_text(angle=90, hjust=1, vjust=.5)) +
   labs(x='',y='36 new samples') 
+
+writeData(wb, 'Fig3G', as.data.frame(dat))
 ```
 
 (here we have `r sum(train)` samples in the training data and `r sum(test)` in the testing)
@@ -1418,11 +1567,13 @@ tmp <- tmp %>%
 
 anno_grob_y <- grid::rectGrob(y=1:length(tmp$col), x=0, gp=gpar(col=NA, fill=col_cols[rev(levels(tmp$col))], alpha=.5))
 
-tmp %>%
+dat <- tmp %>%
   gather(Genotype,coef,-col) %>%
   dplyr::mutate(Genotype=factor(Genotype, levels=CH12.genotypes),
                 col=factor(col, levels=rev(levels(tmp$col)))) %>%
-  ggplot(aes(x=Genotype, y=col, fill=coef, label=round(coef,2))) + 
+  dplyr::select(Genotype, col, coef)
+
+ggplot(dat, aes(x=Genotype, y=col, fill=coef, label=round(coef,2))) + 
   geom_tile() +
   scale_fill_gradient2(low='pink2',high='steelblue3', mid='white', breaks=c(-.3, 0, .3)) +
   my_theme() +
@@ -1433,6 +1584,8 @@ tmp %>%
         legend.direction='horizontal') +
   annotation_custom(grob=anno_grob_y, ymin = 0, ymax = 1, xmin = -4., xmax = 4.5) +
   labs(x='',y='') 
+
+writeData(wb, 'Fig3F', as.data.frame(dat))
 ```
 
 evaluate ridge regression by cross-validation
@@ -1500,7 +1653,7 @@ data.frame(acc=c(unlist(batch.CV),unlist(sample.CV)),
 explained variance for FB cohort
 
 ```{r Fig4B,fig.width=1.25 * fig_scale, fig.height=1.7 * fig_scale}
-FB.data <- read.xlsx('data/source_data.xlsx', sheet='CVID data') %>%
+FB.data <- read.xlsx('data/input_data.xlsx', sheet='CVID data') %>%
   dplyr::mutate(Batch=as.character(Batch)) %>%
   tibble::column_to_rownames('Sample')
 FB.X <- FB.data[grepl('2023',row.names(FB.data)),intersect(colnames(FB.data),columns$col)] %>%
@@ -1516,11 +1669,13 @@ FB.var <- fitExtractVarPartModel(t(FB.X[,colSums(is.na(FB.X))==0]),
   tibble::rownames_to_column('col') %>%
   gather(variable,variance,-col)
 
-FB.var %>%  dplyr::left_join(columns, by='col') %>%
+dat <- FB.var %>%  dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable,levels=c('Donor','Diagnosis','Sex','Age','Batch','Treatment','IV',
                                                   'Complication','Residuals'))) %>%
   dplyr::filter(variable!='Residuals', category %in% c('Isotypes','Diversity','Structural','Context','Breaks','Variants')) %>%
-  ggplot(aes(x=variable, y=100*variance)) + 
+  dplyr::select(variable, variance, col)
+
+ggplot(dat, aes(x=variable, y=100*variance)) + 
   geom_boxplot(aes(fill=variable), outlier.shape=NA, lwd=.5, legend=FALSE) + 
   geom_jitter(position=position_jitter(width=.25), size=.25) +
   my_theme() +
@@ -1530,13 +1685,16 @@ FB.var %>%  dplyr::left_join(columns, by='col') %>%
         legend.box='vertical') +
   scale_fill_manual(values=var_colors, guide='none') +
   labs(x='', y='% Explained variance', fill='', color='')
+
+writeData(wb, 'Fig4B', as.data.frame(dat)) 
 ```
 
 ```{r FigS4A,fig.width=3.5 * fig_scale,fig.height=1.7 * fig_scale}
-FB.var %>%  dplyr::left_join(columns, by='col') %>%
+dat <- FB.var %>%  dplyr::left_join(columns, by='col') %>%
   dplyr::mutate(variable=factor(variable, levels=c('Donor','Diagnosis','Sex','Age','Batch','Treatment','IV','Residuals'))) %>%
   dplyr::filter(variable!='Residuals', category %in% c('Isotypes','Diversity','Structural','Context','Breaks','Variants')) %>%
-  ggplot(aes(x=category, y=100*variance, fill=variable)) + 
+  dplyr::select(category, variance, variable, col)
+ggplot(dat, aes(x=category, y=100*variance, fill=variable)) + 
   geom_boxplot(position=position_dodge(width=.8), outlier.shape=NA, lwd=.5) + 
   geom_jitter(position=position_jitterdodge(jitter.width=.3,dodge.width=.8), size=.5) +
   my_theme() +
@@ -1546,17 +1704,19 @@ FB.var %>%  dplyr::left_join(columns, by='col') %>%
   guides(fill=guide_legend(override.aes = list(shape=22),ncol=7)) +
   scale_fill_manual(values=var_colors) +
   labs(x='', y='% Explained variance', fill='')
+
+writeData(wb, 'FigS4A', as.data.frame(dat))
 ```
 
 a PCA with all selected features on pooled FB data from 2023
  
 ```{r Fig4D, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale} 
-FB.data.pooled <- read.xlsx('data/source_data.xlsx',sheet='CVID data pooled') %>%
+FB.data.pooled <- read.xlsx('data/input_data.xlsx',sheet='CVID data pooled') %>%
   dplyr::mutate(status=ifelse(Diagnosis %in% c('Control','Subclass','Atypical'), Diagnosis, 'CVID'),
                 Treatment=ifelse((Donor=='FB_35') | (Treatment==''),'none',Treatment),
                 IV=ifelse(IV=='','none',IV)) %>%
   tibble::column_to_rownames('Sample')
-QP.data <- read.xlsx('data/source_data.xlsx', sheet='DNA repair data') %>%
+QP.data <- read.xlsx('data/input_data.xlsx', sheet='DNA repair data') %>%
   dplyr::mutate(Diagnosis=plyr::revalue(Diagnosis,c('control'='Control'))) %>%
   tibble::column_to_rownames('Sample')
 
@@ -1596,10 +1756,13 @@ validation <- human.meta$dataset=='validation'
 pca <- prcomp(human.X[train,])
 pcadat <- cbind(pca$x,human.meta[train,])
 
-ggplot(pcadat,aes(x=PC1,y=PC2)) +
+dat <- pcadat %>% 
+  dplyr::select(PC1, PC2, Diagnosis, Donor, status)
+
+ggplot(dat,aes(x=PC1,y=PC2)) +
   geom_point(aes(color=Diagnosis),size=1) +
   geom_line(aes(group=Donor, color=Diagnosis)) +
-  geom_polygon(data = pcadat %>%
+  geom_polygon(data = dat %>%
                  dplyr::group_by(status) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.1, aes(fill=status), legend=FALSE) +
   my_theme() +
@@ -1617,6 +1780,8 @@ ggplot(pcadat,aes(x=PC1,y=PC2)) +
   labs(x=paste0('PC 1 (',100*signif(pca$sdev[1]**2/sum(pca$sdev**2),3),'%)'),
        y=paste0('PC 2 (',100*signif(pca$sdev[2]**2/sum(pca$sdev**2),3),'%)'),
        color='',shape='',fill='')
+
+writeData(wb, 'Fig4D', as.data.frame(dat), rowNames=TRUE)
 ```
 
 (this PCA uses `r dim(human.X)[2]` features)
@@ -1627,24 +1792,25 @@ show subclass features for HD and subclass-deficient people
 subclass.cols <- c("pct_clusters_SA1","pct_clusters_SA2",
                    "pct_clusters_SG1","pct_clusters_SG2","pct_clusters_SG3","pct_clusters_SG4")
 
-tmp <- FB.data.pooled %>%
+dat <- FB.data.pooled %>%
   dplyr::filter(Sample_donor %in% FB_train_donors, Diagnosis %in% c('Control','Subclass')) %>%
   gather(feature, frac_clusters, subclass.cols) %>%
   dplyr::mutate(feature=factor(gsub('pct_clusters_','',feature),
-                               levels=gsub('pct_clusters_','',subclass.cols)))
+                               levels=gsub('pct_clusters_','',subclass.cols))) %>%
+  dplyr::select(feature, Diagnosis, frac_clusters, Donor)
 
-pvals <- tmp %>%
+pvals <- dat %>%
   dplyr::group_by(feature) %>%
   dplyr::do(wc=wilcox.test(frac_clusters ~ Diagnosis, data=.),
             y=max(.$frac_clusters)) %>%
   dplyr::summarise(feature, p.value=wc$p.value, y)
 
-ggplot(tmp, aes(x=feature, y=frac_clusters)) +
+ggplot(dat, aes(x=feature, y=frac_clusters)) +
   geom_boxplot(aes(color=Diagnosis), position=position_dodge(width=.8),width=.7,outlier.shape=NA) +
   geom_point(aes(color=Diagnosis), position=position_dodge(width=.8), size=.5) +
-  geom_line(data=tmp %>% dplyr::filter(Diagnosis=='Control'),
+  geom_line(data=dat %>% dplyr::filter(Diagnosis=='Control'),
             aes(group=Donor), position=position_nudge(x=-.2), alpha=.25, size=.25) +
-  geom_line(data=tmp %>% dplyr::filter(Diagnosis=='Ssubclass'),
+  geom_line(data=dat %>% dplyr::filter(Diagnosis=='Ssubclass'),
             aes(group=Donor), position=position_nudge(x=+.2), alpha=.25, size=.25) +
   geom_text(data=pvals, aes(label=stars.pval(p.value), y=1.1*y)) +
   scale_color_manual(values=diagnosis_colors) +
@@ -1652,6 +1818,8 @@ ggplot(tmp, aes(x=feature, y=frac_clusters)) +
   coord_cartesian(clip='off') +
   theme(legend.position=c(.8,.8)) +
   labs(color='',x='', y='Fraction clusters')
+
+writeData(wb, 'FigS4D', as.data.frame(dat))
 ```
 
 correlate FACS against SWIBRID
@@ -1661,8 +1829,12 @@ tmp <- FB.data.pooled %>%
   dplyr::mutate(alpha_ratio_FACS=pct_IgA/(pct_IgA + pct_IgG)) %>%
   dplyr::filter(Diagnosis %in% c('Control','CVID','CVID-like')) %>%
   dplyr::group_by(status) %>%
-  dplyr::mutate(status_R=paste0(status," (R=",signif(cor(alpha_ratio_FACS,alpha_ratio_clusters,use='na.or.complete'),2),")"))
-ggplot(tmp, aes(x=alpha_ratio_FACS, y=alpha_ratio_clusters, color=status)) + 
+  dplyr::mutate(status_R=paste0(status," (R=",signif(cor(alpha_ratio_FACS,alpha_ratio_clusters,use='na.or.complete'),2),")")) 
+
+dat <- tmp %>%
+  dplyr::select(alpha_ratio_FACS, alpha_ratio_clusters, status, Donor)
+
+ggplot(dat, aes(x=alpha_ratio_FACS, y=alpha_ratio_clusters, color=status)) + 
   geom_abline(slope=1, intercept=0, size=.5) +
   geom_point() + 
   my_theme() +
@@ -1671,6 +1843,8 @@ ggplot(tmp, aes(x=alpha_ratio_FACS, y=alpha_ratio_clusters, color=status)) +
   theme(legend.position=c(.8,.15),
         legend.box=element_blank(),
         legend.title=element_blank())
+
+writeData(wb, 'FigS4E', as.data.frame(dat))
 ```
 
 
@@ -1686,7 +1860,7 @@ FB.features <- c('pct_clusters_SG2',
                  'cluster_size_mean',
                  'somatic_variants')
 
-tmp <- FB.data.pooled[FB.data.pooled$Sample_donor %in% FB_train_donors,] %>% 
+dat <- FB.data.pooled[FB.data.pooled$Sample_donor %in% FB_train_donors,] %>% 
   dplyr::select(Donor,Diagnosis,FB.features) %>%
   dplyr::mutate(Diagnosis_simple=factor(plyr::revalue(Diagnosis, c('AID'='CVID-like',
                                                                    'ICOS'='CVID-like',
@@ -1700,9 +1874,10 @@ tmp <- FB.data.pooled[FB.data.pooled$Sample_donor %in% FB_train_donors,] %>%
   dplyr::mutate(ng=n_distinct(Donor),
                 Diagnosis_new=paste0(Diagnosis_simple,' (n=',ng,')')) %>%
   gather(col,value,-c(Diagnosis_simple,ng,Diagnosis_new,Donor,Diagnosis)) %>% 
-  dplyr::mutate(col=factor(col, levels=FB.features))
+  dplyr::mutate(col=factor(col, levels=FB.features)) %>%
+  dplyr::select(Diagnosis_simple, value, col,Donor)
 
-ggplot(tmp, aes(x=Diagnosis_simple,y=value,fill=Diagnosis_simple)) + 
+ggplot(dat, aes(x=Diagnosis_simple,y=value,fill=Diagnosis_simple)) + 
   geom_boxplot(outlier.shape=NA, lwd=.5) + 
   geom_jitter(width=.1,height=0,size=.5) + 
   stat_compare_means(ref.group='Control',method='wilcox.test',label = "p.signif", hide.ns=TRUE, size=2) +
@@ -1714,6 +1889,8 @@ ggplot(tmp, aes(x=Diagnosis_simple,y=value,fill=Diagnosis_simple)) +
         axis.text.x=element_text(angle=90,hjust=1,vjust=.5)) +
   scale_x_discrete(breaks=tmp$Diagnosis_simple,labels=tmp$Diagnosis_new) +
   labs(x='',y='', color='# Reads')
+
+writeData(wb, 'Fig4C', as.data.frame(dat))
 ```
 
 project test data into the training data PCA
@@ -1724,9 +1901,12 @@ pcadat.combined <- rbind(cbind(as.matrix(human.X[train,]) %*% pca$rotation, huma
                          cbind(as.matrix(human.X[validation,]) %*% pca$rotation, human.meta[validation,])) %>%
   dplyr::mutate(dataset=factor(dataset, levels=c('training','testing','validation')))
 
-ggplot(pcadat.combined %>% dplyr::filter(dataset!='validation'),
-       aes(x=PC1,y=PC2)) +
-  geom_polygon(data = pcadat.combined %>% dplyr::filter(dataset=='training') %>%
+dat <- pcadat.combined %>%
+  dplyr::filter(dataset!='validation') %>%
+  dplyr::select(PC1, PC2, dataset, status, Diagnosis, Donor)
+
+ggplot(dat, aes(x=PC1,y=PC2)) +
+  geom_polygon(data = dat %>% dplyr::filter(dataset=='training') %>%
                  dplyr::group_by(status) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.1, color=NA, aes(fill=status), show.legend=FALSE) +
   geom_point(aes(color=Diagnosis,alpha=dataset, shape=dataset), size=1) +
@@ -1750,15 +1930,20 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='validation'),
   labs(x='PC 1',
        y='PC 2',
        color='',shape='',fill='',alpha='')
+
+writeData(wb, 'Fig4E', as.data.frame(dat), rowNames=TRUE)
 ```
 
 
 project validation data into training PCA
 
 ```{r Fig4F, fig.width=2.25 * fig_scale, fig.height=2 * fig_scale}
-ggplot(pcadat.combined %>% dplyr::filter(dataset!='testing'),
-       aes(x=PC1,y=PC2)) +
-  geom_polygon(data = pcadat.combined %>% dplyr::filter(dataset=='training') %>%
+dat <- pcadat.combined %>%
+  dplyr::filter(dataset!='testing') %>%
+  dplyr::select(PC1, PC2, dataset, status, Diagnosis, Donor)
+
+ggplot(dat, aes(x=PC1,y=PC2)) +
+  geom_polygon(data = dat %>% dplyr::filter(dataset=='training') %>%
                  dplyr::group_by(status) %>%
                  dplyr::slice(chull(PC1, PC2)), alpha = 0.1, color=NA, aes(fill=status), show.legend=FALSE) +
   geom_point(aes(color=Diagnosis,alpha=dataset, shape=dataset), size=1) +
@@ -1782,6 +1967,8 @@ ggplot(pcadat.combined %>% dplyr::filter(dataset!='testing'),
   labs(x='PC 1', 
        y='PC 2', 
        color='',shape='',fill='',alpha='')
+
+writeData(wb, 'Fig4F', as.data.frame(dat), rowNames=TRUE)
 ```
 
 do ridge regression from training to testing or validation data (take out subclass and atypical, as well as biol replicates of training)
@@ -1799,15 +1986,16 @@ ROC_1 <- roc(human.meta[test.here,'status']!='Control', pred_1)
 pred_2 <- predict(mod, type = "response", newx=as.matrix(human.X[validation,]))
 ROC_2 <- roc(human.meta[validation,'status']!='Control', pred_2)
 
-FB_res <- data.frame(specificity=c(ROC_1$specificities,ROC_2$specificities),
+dat <- data.frame(specificity=c(ROC_1$specificities,ROC_2$specificities),
                      sensitivity=c(ROC_1$sensitivities,ROC_2$sensitivities),
                      thresholds=c(ROC_1$thresholds,ROC_2$thresholds),
                      model=c(rep(paste0('training -> testing; AUC=',signif(ROC_1$auc,3)),length(ROC_1$specificities)),
                              rep(paste0('training -> validation; AUC=',signif(ROC_2$auc,3)),length(ROC_2$specificities)))) %>%
   dplyr::mutate(model=factor(model, levels=unique(model))) %>%
-  dplyr::arrange(model,sensitivity) 
+  dplyr::arrange(model,sensitivity)  %>%
+  dplyr::select(specificity, sensitivity, model)
 
-ggplot(FB_res, aes(x=specificity,y=sensitivity,color=model)) + 
+ggplot(dat, aes(x=specificity,y=sensitivity,color=model)) + 
   geom_step() +
   scale_x_reverse() +  
   geom_abline(slope=1,intercept=1,linewidth=.25,linetype='dashed') +
@@ -1816,6 +2004,8 @@ ggplot(FB_res, aes(x=specificity,y=sensitivity,color=model)) +
   scale_color_manual(values=c('steelblue4','lightsteelblue')) +
   theme(legend.position=c(.5,.2)) +
   labs(color='',linetype='')
+
+writeData(wb, 'Fig4G', as.data.frame(dat))
 ```
 
 here we have `r sum(train.here)` samples in the training data set, `r sum(test.here)` in the testing dataset, and `r sum(validation)` in the validation cohort
@@ -1837,9 +2027,11 @@ tmp <- tmp %>%
 
 anno_grob_x <- grid::rectGrob(x=1:length(tmp$col), y=0, gp=gpar(col=NA, fill=col_cols[rev(levels(tmp$col))], alpha=.5))
 
-tmp %>%
+dat <- tmp %>%
   dplyr::mutate(col=factor(col, levels=rev(levels(tmp$col)))) %>%
-  ggplot(aes(x=col, y=1, fill=coef, label=round(coef,2))) + 
+  dplyr::select(col, coef)
+
+ggplot(dat, aes(x=col, y=1, fill=coef, label=round(coef,2))) + 
   geom_tile() +
   scale_fill_gradient2(low='pink2',high='steelblue3', mid='white', breaks=c(-.05, 0, .05), labels=c('-.05 (HD)','0','+.05 (CVID)')) +
   my_theme() +
@@ -1851,6 +2043,8 @@ tmp %>%
         legend.direction='vertical') +
   annotation_custom(grob=anno_grob_x, xmin = 0, xmax = 1, ymin = -2.8, ymax = 3) +
   labs(x='',y='') 
+
+writeData(wb, 'FigS4G', as.data.frame(dat))
 ```
 
 evaluate ridge regression by cross-validation
@@ -1926,14 +2120,13 @@ class_colors <- c('Cluster1'=diagnosis_colors[['Control']],
                   'Cluster2'=cat_cols[['Structural']],
                   'Cluster3'=cat_cols[['Diversity']])
 
-hm_meta <- FB.meta[,c('Diagnosis','Sex','Age','Donor','Timepoint' ,'Complication'),drop=FALSE] %>% 
+hm_meta <- FB.meta[,c('Diagnosis','Sex','Age','Donor','Timepoint'),drop=FALSE] %>% 
   tibble::remove_rownames() %>%
   dplyr::mutate(name=gsub('t','',gsub('FB_','',paste0(Donor,'_',Timepoint))),
                 Diagnosis=factor(Diagnosis,
                                  levels=c('Control','Subclass','Atypical',
                                           'CVID','ICOS','Kabuki',
-                                          'AID','IgG4def','NFKB2','PI3K','TNFRSF13B')),
-                Complication=factor(Complication, levels=c('NA','io','c'))) %>%
+                                          'AID','IgG4def','NFKB2','PI3K','TNFRSF13B'))) %>%
   dplyr::left_join(class_df,by='name') %>%
   dplyr::select(-c(Donor,Timepoint)) %>%
   tibble::column_to_rownames('name')
@@ -1941,48 +2134,6 @@ hm_meta <- FB.meta[,c('Diagnosis','Sex','Age','Donor','Timepoint' ,'Complication
 hm1 <- Heatmap(t(FB.X),
                col=colorRamp2(c(-2,0, 2), c("blue",'gray90', "red")),
                cluster_columns=dend,
-               cluster_rows=TRUE,
-               show_row_names=TRUE,
-               show_column_names=TRUE,
-               show_row_dend=TRUE,
-               top_annotation=HeatmapAnnotation(df=hm_meta,
-                                                show_annotation_name=TRUE,
-                                                show_legend=TRUE,
-                                                simple_anno_size=unit(2,'mm'),
-                                                annotation_legend_param=list(title_gp=gpar(fontsize=7),
-                                                                             labels_gp=gpar(fontsize=7),
-                                                                             legend_height = unit(5, "mm"),
-                                                                             legend_width = unit(3, "mm"),
-                                                                             grid_height = unit(3, "mm"),
-                                                                             grid_width = unit(3, "mm")),
-                                                annotation_name_gp=gpar(fontsize=7),
-                                                col=list('Diagnosis'=diagnosis_colors,
-                                                         'Class'=class_colors,
-                                                         'Age'=colorRamp2(c(20,50,80),c("yellow2","orange2","coral3")),
-                                                         'Sex'=c('male'='mistyrose2',
-                                                                 'female'='lightseagreen'),
-                                                         'Complication'=c('NA'='gray80',
-                                                                          'io'='blue3',
-                                                                          'c'='red3'))),
-               column_names_gp=gpar(fontsize=4),
-               row_names_gp =gpar(fontsize = 7),
-               row_dend_width = unit(7, "mm"),
-               row_split = columns %>% tibble::column_to_rownames('col') %>% .[selected.cols, 'category'], 
-               heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
-                                         title_gp=gpar(fontsize=7),
-                                         at=c(-2,0,2),
-                                         grid_height=unit(4, 'mm'),
-                                         grid_width=unit(3, 'mm'),
-                                         legend_height=unit(5,'mm'),
-                                         legend_width=unit(3,'mm')),
-               row_title=NULL,
-               name='z-score')  
-
-
-hm2 <- Heatmap(t(FB.X),
-               col=colorRamp2(c(-2,0, 2), c("blue",'gray90', "red")),
-               column_split = grepl('09|32', row.names(FB.X)), 
-               column_title = NULL,
                cluster_rows=TRUE,
                show_row_names=TRUE,
                show_column_names=TRUE,
@@ -2017,6 +2168,45 @@ hm2 <- Heatmap(t(FB.X),
                row_title=NULL,
                name='z-score')  
 
+
+# hm2 <- Heatmap(t(FB.X),
+#                col=colorRamp2(c(-2,0, 2), c("blue",'gray90', "red")),
+#                column_split = grepl('09|32', row.names(FB.X)), 
+#                column_title = NULL,
+#                cluster_rows=TRUE,
+#                show_row_names=TRUE,
+#                show_column_names=TRUE,
+#                show_row_dend=TRUE,
+#                top_annotation=HeatmapAnnotation(df=hm_meta,
+#                                                 show_annotation_name=TRUE,
+#                                                 show_legend=TRUE,
+#                                                 simple_anno_size=unit(2,'mm'),
+#                                                 annotation_legend_param=list(title_gp=gpar(fontsize=7),
+#                                                                              labels_gp=gpar(fontsize=7),
+#                                                                              legend_height = unit(5, "mm"),
+#                                                                              legend_width = unit(3, "mm"),
+#                                                                              grid_height = unit(3, "mm"),
+#                                                                              grid_width = unit(3, "mm")),
+#                                                 annotation_name_gp=gpar(fontsize=7),
+#                                                 col=list('Diagnosis'=diagnosis_colors,
+#                                                          'Class'=class_colors,
+#                                                          'Age'=colorRamp2(c(20,50,80),c("yellow2","orange2","coral3")),
+#                                                          'Sex'=c('male'='mistyrose2',
+#                                                                  'female'='lightseagreen'))),
+#                column_names_gp=gpar(fontsize=4),
+#                row_names_gp =gpar(fontsize = 7),
+#                row_dend_width = unit(7, "mm"),
+#                row_split = columns %>% tibble::column_to_rownames('col') %>% .[selected.cols, 'category'], 
+#                heatmap_legend_param=list(labels_gp=gpar(fontsize=7),
+#                                          title_gp=gpar(fontsize=7),
+#                                          at=c(-2,0,2),
+#                                          grid_height=unit(4, 'mm'),
+#                                          grid_width=unit(3, 'mm'),
+#                                          legend_height=unit(5,'mm'),
+#                                          legend_width=unit(3,'mm')),
+#                row_title=NULL,
+#                name='z-score')  
+
 hm3 <- Heatmap(t(pca_hm[,c('PC1','PC2')]),
                cluster_columns=dend,
                cluster_rows=TRUE,
@@ -2038,8 +2228,13 @@ hm3 <- Heatmap(t(pca_hm[,c('PC1','PC2')]),
 
 hm1 %v% hm3
 
-hm2 %v% hm3
+#hm2 %v% hm3
 
+dat <- rbind(t(hm_meta),
+             t(FB.X),
+             t(pca_hm[,c('PC1','PC2')]))
+
+writeData(wb, 'Fig4H', as.data.frame(dat), rowNames=TRUE)
 ```
 
 show PCA loadings per category
@@ -2060,7 +2255,10 @@ cols_shapes <- tmp %>%
   dplyr::mutate(col=factor(col, levels=levels(tmp$col))) %>% 
   dplyr::arrange(col)
 
-ggplot(tmp,aes(x=abs(PC1),y=abs(PC2), color=col, shape=col)) +
+dat <- tmp %>%
+  dplyr::select(PC1, PC2, col)
+
+ggplot(dat,aes(x=abs(PC1),y=abs(PC2), color=col, shape=col)) +
   geom_point(size=1) +
   my_theme() +
   scale_color_manual(values=cols_shapes %>%
@@ -2081,15 +2279,19 @@ ggplot(tmp,aes(x=abs(PC1),y=abs(PC2), color=col, shape=col)) +
          shape=guide_legend(ncol=2)) +
   labs(x='Abs. PC 1', y='Abs. PC 2',
        color='',shape='',fill='',alpha='')
+
+writeData(wb, 'FigS4C', as.data.frame(dat))
 ```
 
 categorize the samples
 
 ```{r FigS4H, fig.width=2.5 * fig_scale, fig.height=2 * fig_scale}
-ggplot(pca_hm %>% tibble::rownames_to_column('name') %>%
-         dplyr::filter(dataset!='validation') %>%
-         dplyr::left_join(class_df, by='name'), 
-       aes(x=PC1,y=PC2, color=Class, shape=dataset)) +
+dat <- pca_hm %>% tibble::rownames_to_column('name') %>%
+  dplyr::filter(dataset!='validation') %>%
+  dplyr::left_join(class_df, by='name') %>%
+  dplyr::select(PC1, PC2, Class, dataset, Donor)
+
+ggplot(dat, aes(x=PC1,y=PC2, color=Class, shape=dataset)) +
   geom_point(size=1) +
   geom_point(data=pcadat.combined %>% dplyr::filter(dataset=='validation'),
              aes(color=Diagnosis), size=1) +
@@ -2107,6 +2309,8 @@ ggplot(pca_hm %>% tibble::rownames_to_column('name') %>%
   labs(x='PC 1', 
        y='PC 2', 
        color='')
+
+writeData(wb, 'FigS4H', as.data.frame(dat))
 ```
 
 box plots for selected features
@@ -2120,7 +2324,7 @@ features.here <- c('cluster_size_mean',
 
 groups <- c('Cluster1','Cluster2','Cluster3','Control','BRCA1','ATM')
 
-tmp <- cbind(rbind(FB.data.pooled[,features.here],
+dat <- cbind(rbind(FB.data.pooled[,features.here],
                    QP.data[,features.here]),
              human.meta[,c('Diagnosis','dataset','Donor','Timepoint')]) %>%
   tibble::rownames_to_column('Sample_donor') %>%
@@ -2133,9 +2337,11 @@ tmp <- cbind(rbind(FB.data.pooled[,features.here],
   dplyr::mutate(ng=n_distinct(Donor),
                 group_new=paste0(group,' (n=',ng,')')) %>%
   gather(col,value,features.here) %>%
-  dplyr::mutate(col=factor(col, levels=features.here))
+  dplyr::mutate(col=factor(col, levels=features.here)) %>%
+  dplyr::select(group, value, col, Donor)
 
-ggplot(tmp, aes(x=ifelse(grepl('Cluster',group),as.numeric(group),1+as.numeric(group)),
+
+ggplot(dat, aes(x=ifelse(grepl('Cluster',group),as.numeric(group),1+as.numeric(group)),
                 y=value,fill=group)) +
   geom_boxplot(outlier.shape=NA, lwd=.5) +
   geom_jitter(width=.1,height=0,size=.5) +
@@ -2152,6 +2358,8 @@ ggplot(tmp, aes(x=ifelse(grepl('Cluster',group),as.numeric(group),1+as.numeric(g
   scale_x_continuous(breaks=c(1,2,3,5,6,7),
                      labels=groups) +
   labs(x='',y='', color='Diagnosis')
+
+writeData(wb, 'Fig4J', as.data.frame(dat))
 ```
 
 check association of clinics with features
@@ -2172,7 +2380,7 @@ for (x in c("Tetanus",
   }
 }
 
-FB.data.pooled[FB.samples, ] %>%
+dat <- FB.data.pooled[FB.samples, ] %>%
   dplyr::mutate(Tetanus=ifelse(status=='Control','Positive',str_to_title(Tetanus)),
                 Diphteria=ifelse(status=='Control','Positive',str_to_title(Diphteria)),
                 PnPS=ifelse(status=='Control','Positive',str_to_title(PnPS))) %>%
@@ -2180,7 +2388,9 @@ FB.data.pooled[FB.samples, ] %>%
   gather(vacc, vacc_status, c('Tetanus','Diphteria','PnPS')) %>%
   dplyr::mutate(vacc_status=factor(ifelse(vacc_status=='','No data',vacc_status),
                                    c('Negative','Positive','No data'))) %>%
-  ggplot(aes(x=vacc_status, y=value, fill=vacc_status)) +
+  dplyr::select(vacc_status, value, feature, vacc, status)
+
+ggplot(dat, aes(x=vacc_status, y=value, fill=vacc_status)) +
   geom_boxplot(outlier.shape=NA) +
   geom_jitter(aes(color=status),width=.1, size=.5) +
   stat_compare_means(comparisons=list(c('Negative','Positive'),
@@ -2195,6 +2405,8 @@ FB.data.pooled[FB.samples, ] %>%
   theme(legend.position='none',
         strip.clip='off',
         axis.text.x=element_text(angle=45, hjust=1, vjust=1))
+
+writeData(wb, 'FigS4B', as.data.frame(dat))
 ```
 
 check aggregated scores
@@ -2274,6 +2486,15 @@ hm2 <- Heatmap(t(FB.X.aggregated[samples,]),
                name='Category score')  
 
 hm2
+
+dat <- rbind(t(FB.meta.aggregated[samples,]),
+             t(FB.X.aggregated[samples,]))
+
+writeData(wb, 'FigS4F', as.data.frame(dat), rowNames=TRUE)
+```
+
+```{r save}
+saveWorkbook(wb, file = "data/source_data_file.xlsx", overwrite = TRUE)
 ```
 
 # session info

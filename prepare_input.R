@@ -521,4 +521,4 @@ VDJ_results <- lapply(vdj_samples, function(sample)
   dplyr::select(cloneId,readCount,uniqueMoleculeCount,allVHitsWithScore,allCHitsWithScore,aaSeqCDR3,Sample,Donor,ncells)
 writeData(wb, 'VDJ data', VDJ_results)
 
-saveWorkbook(wb, file = "data/source_data.xlsx", overwrite = TRUE)
+saveWorkbook(wb, file = "data/input_data.xlsx", overwrite = TRUE)
